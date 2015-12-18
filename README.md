@@ -1,3 +1,5 @@
+[![GoDoc](https://godoc.org/github.com/docker/go-connections?status.svg)](https://godoc.org/github.com/docker/go-connections)
+
 # Introduction
 
 go-connections provides common package to work with network connections.
