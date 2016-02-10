@@ -12,8 +12,8 @@ const defaultTimeout = 32 * time.Second
 
 // ConfigureTransport configures the specified Transport according to the
 // specified proto and addr.
-// If the proto is unix (using a unix socket to communicate) the compression
-// is disabled.
+// If the proto is unix (using a unix socket to communicate) or npipe the
+// compression is disabled.
 func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 	switch proto {
 	case "unix":
