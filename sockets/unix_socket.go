@@ -1,4 +1,5 @@
 // +build linux freebsd solaris
+// +build !appengine
 
 package sockets
 
