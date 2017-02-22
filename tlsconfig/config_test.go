@@ -377,6 +377,70 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 	}
 }
 
+// If a valid minimum version is specified in the options, the server's
+// minimum version should be set accordingly
+func TestConfigServerTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
+	versions := []uint16{
+		tls.VersionTLS11,
+		tls.VersionTLS12,
+	}
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	for _, v := range versions {
+		tlsConfig, err := Server(Options{
+			MinVersion: v,
+			CertFile:   cert,
+			KeyFile:    key,
+		})
+
+		if err != nil || tlsConfig == nil {
+			t.Fatal("Unable to configure server TLS", err)
+		}
+
+		if tlsConfig.MinVersion != v {
+			t.Fatal("Unexpected minimum TLS version: ", tlsConfig.MinVersion)
+		}
+	}
+}
+
+// An error should be returned if the specified minimum version for the server
+// is too low, i.e. less than VersionTLS10
+func TestConfigServerTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	_, err := Server(Options{
+		MinVersion: tls.VersionSSL30,
+		CertFile:   cert,
+		KeyFile:    key,
+	})
+
+	if err == nil {
+		t.Fatal("Should have returned an error for minimum version below TLS10")
+	}
+}
+
+// An error should be returned if an invalid minimum version for the server is
+// in the options struct
+func TestConfigServerTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	_, err := Server(Options{
+		MinVersion: 1,
+		CertFile:   cert,
+		KeyFile:    key,
+	})
+
+	if err == nil {
+		t.Fatal("Should have returned error on invalid minimum version option")
+	}
+}
+
 // The root CA is never set if InsecureSkipBoolean is set to true, but the
 // default client options are set
 func TestConfigClientTLSNoVerify(t *testing.T) {
@@ -601,5 +665,63 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		case i == 0 && err == nil:
 			t.Fatal("Successfully verified custom certificate though the root pool should be the system pool only", err)
 		}
+	}
+}
+
+// If a valid MinVersion is specified in the options, the client's
+// minimum version should be set accordingly
+func TestConfigClientTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	tlsConfig, err := Client(Options{
+		MinVersion: tls.VersionTLS12,
+		CertFile:   cert,
+		KeyFile:    key,
+	})
+
+	if err != nil || tlsConfig == nil {
+		t.Fatal("Unable to configure client TLS", err)
+	}
+
+	if tlsConfig.MinVersion != tls.VersionTLS12 {
+		t.Fatal("Unexpected minimum TLS version: ", tlsConfig.MinVersion)
+	}
+}
+
+// An error should be returned if the specified minimum version for the client
+// is too low, i.e. less than VersionTLS12
+func TestConfigClientTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	_, err := Client(Options{
+		MinVersion: tls.VersionTLS11,
+		CertFile:   cert,
+		KeyFile:    key,
+	})
+
+	if err == nil {
+		t.Fatal("Should have returned an error for minimum version below TLS12")
+	}
+}
+
+// An error should be returned if an invalid minimum version for the client is
+// in the options struct
+func TestConfigClientTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
+	tempDir := makeTempDir(t)
+	defer os.RemoveAll(tempDir)
+	key, cert := generateCertAndKey(t, tempDir)
+
+	_, err := Client(Options{
+		MinVersion: 1,
+		CertFile:   cert,
+		KeyFile:    key,
+	})
+
+	if err == nil {
+		t.Fatal("Should have returned error on invalid minimum version option")
 	}
 }
