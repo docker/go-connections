@@ -2,27 +2,18 @@ package tlsconfig
 
 import (
 	"bytes"
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
-	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
-	"path/filepath"
 	"reflect"
 	"testing"
-	"time"
 )
 
 // This is the currently active LetsEncrypt IdenTrust cross-signed CA cert.  It expires Mar 17, 2021.
-const systemRootTrustedCert = `
+const (
+	systemRootTrustedCert = `
 -----BEGIN CERTIFICATE-----
 MIIEkjCCA3qgAwIBAgIQCgFBQgAAAVOFc2oLheynCDANBgkqhkiG9w0BAQsFADA/
 MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
@@ -51,108 +42,27 @@ PfZ+G6Z6h7mjem0Y+iWlkYcV4PIWL1iwBi8saCbGS5jN2p8M+X+Q7UNKEkROb3N6
 KOqkqm57TH2H3eDJAkSnh6/DNFu0Qg==
 -----END CERTIFICATE-----
 `
+	rsaPrivateKeyFile    = "fixtures/key.pem"
+	certificateFile      = "fixtures/cert.pem"
+	multiCertificateFile = "fixtures/multi.pem"
+)
 
-var certTemplate = x509.Certificate{
-	SerialNumber: big.NewInt(199999),
-	Subject: pkix.Name{
-		CommonName: "test",
-	},
-	NotBefore: time.Now().AddDate(-1, 1, 1),
-	NotAfter:  time.Now().AddDate(1, 1, 1),
-
-	KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-	ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageCodeSigning, x509.ExtKeyUsageAny},
-
-	BasicConstraintsValid: true,
+// returns the name of a pre-generated, multiple-certificate CA file
+// with both RSA and ECDSA certs.
+func getMultiCert() string {
+	return multiCertificateFile
 }
 
-func generateCertificate(t *testing.T, signer crypto.Signer, out io.Writer, isCA bool) {
-	template := certTemplate
-	template.IsCA = isCA
-	if isCA {
-		template.KeyUsage = template.KeyUsage | x509.KeyUsageCertSign
-		template.MaxPathLen = 1
-	}
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &certTemplate, signer.Public(), signer)
-	if err != nil {
-		t.Fatal("Unable to generate a certificate", err.Error())
-	}
-
-	if err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
-		t.Fatal("Unable to write cert to file", err.Error())
-	}
-}
-
-// generates a multiple-certificate CA file with both RSA and ECDSA certs and
-// returns the filename so that cleanup can be deferred.
-func generateMultiCert(t *testing.T, tempDir string) string {
-	certOut, err := os.Create(filepath.Join(tempDir, "multi"))
-	if err != nil {
-		t.Fatal("Unable to create file to write multi-cert to", err.Error())
-	}
-	defer certOut.Close()
-
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal("Unable to generate RSA key for multi-cert", err.Error())
-	}
-	ecKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal("Unable to generate ECDSA key for multi-cert", err.Error())
-	}
-
-	for _, signer := range []crypto.Signer{rsaKey, ecKey} {
-		generateCertificate(t, signer, certOut, true)
-	}
-
-	return certOut.Name()
-}
-
-func generateCertAndKey(t *testing.T, tempDir string) (string, string) {
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		t.Fatal("Unable to generate RSA key", err.Error())
-
-	}
-	keyBytes := x509.MarshalPKCS1PrivateKey(rsaKey)
-
-	keyOut, err := os.Create(filepath.Join(tempDir, "key"))
-	if err != nil {
-		t.Fatal("Unable to create file to write key to", err.Error())
-
-	}
-	defer keyOut.Close()
-
-	if err = pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: keyBytes}); err != nil {
-		t.Fatal("Unable to write key to file", err.Error())
-	}
-
-	certOut, err := os.Create(filepath.Join(tempDir, "cert"))
-	if err != nil {
-		t.Fatal("Unable to create file to write cert to", err.Error())
-	}
-	defer certOut.Close()
-
-	generateCertificate(t, rsaKey, certOut, false)
-
-	return keyOut.Name(), certOut.Name()
-}
-
-func makeTempDir(t *testing.T) string {
-	tempDir, err := ioutil.TempDir("", "tlsconfig-test")
-	if err != nil {
-		t.Fatal("Could not make a temporary directory", err.Error())
-	}
-	return tempDir
+// returns the names of pre-generated key and certificate files.
+func getCertAndKey() (string, string) {
+	return rsaPrivateKeyFile, certificateFile
 }
 
 // If the cert files and directory are provided but are invalid, an error is
 // returned.
 func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
-	ca := generateMultiCert(t, tempDir)
+	key, cert := getCertAndKey()
+	ca := getMultiCert()
 
 	tempFile, err := ioutil.TempFile("", "cert-test")
 	if err != nil {
@@ -182,9 +92,7 @@ func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
 // If server cert and key are provided and client auth and client CA are not
 // set, a tls config with only the server certs will be returned.
 func TestConfigServerTLSServerCertsOnly(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	keypair, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
@@ -225,10 +133,8 @@ func TestConfigServerTLSServerCertsOnly(t *testing.T) {
 // If client CA is provided, it will only be used if the client auth is >=
 // VerifyClientCertIfGiven
 func TestConfigServerTLSClientCANotSetIfClientAuthTooLow(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
-	ca := generateMultiCert(t, tempDir)
+	key, cert := getCertAndKey()
+	ca := getMultiCert()
 
 	tlsConfig, err := Server(Options{
 		CertFile:   cert,
@@ -255,10 +161,8 @@ func TestConfigServerTLSClientCANotSetIfClientAuthTooLow(t *testing.T) {
 // If client CA is provided, it will only be used if the client auth is >=
 // VerifyClientCertIfGiven
 func TestConfigServerTLSClientCASet(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
-	ca := generateMultiCert(t, tempDir)
+	key, cert := getCertAndKey()
+	ca := getMultiCert()
 
 	tlsConfig, err := Server(Options{
 		CertFile:   cert,
@@ -290,10 +194,8 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigServerExclusiveRootPools(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
-	ca := generateMultiCert(t, tempDir)
+	key, cert := getCertAndKey()
+	ca := getMultiCert()
 
 	caBytes, err := ioutil.ReadFile(ca)
 	if err != nil {
@@ -384,9 +286,7 @@ func TestConfigServerTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
 		tls.VersionTLS11,
 		tls.VersionTLS12,
 	}
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	for _, v := range versions {
 		tlsConfig, err := Server(Options{
@@ -408,9 +308,7 @@ func TestConfigServerTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
 // An error should be returned if the specified minimum version for the server
 // is too low, i.e. less than VersionTLS10
 func TestConfigServerTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	_, err := Server(Options{
 		MinVersion: tls.VersionSSL30,
@@ -426,9 +324,7 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
 // An error should be returned if an invalid minimum version for the server is
 // in the options struct
 func TestConfigServerTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	_, err := Server(Options{
 		MinVersion: 1,
@@ -444,9 +340,7 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
 // The root CA is never set if InsecureSkipBoolean is set to true, but the
 // default client options are set
 func TestConfigClientTLSNoVerify(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	ca := generateMultiCert(t, tempDir)
+	ca := getMultiCert()
 
 	tlsConfig, err := Client(Options{CAFile: ca, InsecureSkipVerify: true})
 
@@ -497,9 +391,7 @@ func TestConfigClientTLSNoRoot(t *testing.T) {
 
 // The RootCA is set if the file is provided and InsecureSkipVerify is false
 func TestConfigClientTLSRootCAFileWithOneCert(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	ca := generateMultiCert(t, tempDir)
+	ca := getMultiCert()
 
 	tlsConfig, err := Client(Options{CAFile: ca})
 
@@ -531,9 +423,7 @@ func TestConfigClientTLSNonexistentRootCAFile(t *testing.T) {
 // An error is returned if either the client cert or the key are provided
 // but invalid or blank.
 func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	tempFile, err := ioutil.TempFile("", "cert-test")
 	if err != nil {
@@ -558,9 +448,7 @@ func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 // The certificate is set if the client cert and client key are provided and
 // valid.
 func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	keypair, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
@@ -593,9 +481,7 @@ func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigClientExclusiveRootPools(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	ca := generateMultiCert(t, tempDir)
+	ca := getMultiCert()
 
 	caBytes, err := ioutil.ReadFile(ca)
 	if err != nil {
@@ -671,9 +557,7 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 // If a valid MinVersion is specified in the options, the client's
 // minimum version should be set accordingly
 func TestConfigClientTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	tlsConfig, err := Client(Options{
 		MinVersion: tls.VersionTLS12,
@@ -693,9 +577,7 @@ func TestConfigClientTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
 // An error should be returned if the specified minimum version for the client
 // is too low, i.e. less than VersionTLS12
 func TestConfigClientTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	_, err := Client(Options{
 		MinVersion: tls.VersionTLS11,
@@ -711,9 +593,7 @@ func TestConfigClientTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
 // An error should be returned if an invalid minimum version for the client is
 // in the options struct
 func TestConfigClientTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
-	tempDir := makeTempDir(t)
-	defer os.RemoveAll(tempDir)
-	key, cert := generateCertAndKey(t, tempDir)
+	key, cert := getCertAndKey()
 
 	_, err := Client(Options{
 		MinVersion: 1,
