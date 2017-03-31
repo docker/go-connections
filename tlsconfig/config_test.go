@@ -42,9 +42,11 @@ PfZ+G6Z6h7mjem0Y+iWlkYcV4PIWL1iwBi8saCbGS5jN2p8M+X+Q7UNKEkROb3N6
 KOqkqm57TH2H3eDJAkSnh6/DNFu0Qg==
 -----END CERTIFICATE-----
 `
-	rsaPrivateKeyFile    = "fixtures/key.pem"
-	certificateFile      = "fixtures/cert.pem"
-	multiCertificateFile = "fixtures/multi.pem"
+	rsaPrivateKeyFile             = "fixtures/key.pem"
+	certificateFile               = "fixtures/cert.pem"
+	multiCertificateFile          = "fixtures/multi.pem"
+	rsaEncryptedPrivateKeyFile    = "fixtures/encrypted_key.pem"
+	certificateOfEncryptedKeyFile = "fixtures/cert_of_encrypted_key.pem"
 )
 
 // returns the name of a pre-generated, multiple-certificate CA file
@@ -56,6 +58,12 @@ func getMultiCert() string {
 // returns the names of pre-generated key and certificate files.
 func getCertAndKey() (string, string) {
 	return rsaPrivateKeyFile, certificateFile
+}
+
+// returns the names of pre-generated, encrypted private key and
+// corresponding certificate file
+func getCertAndEncryptedKey() (string, string) {
+	return rsaEncryptedPrivateKeyFile, certificateOfEncryptedKeyFile
 }
 
 // If the cert files and directory are provided but are invalid, an error is
@@ -475,6 +483,42 @@ func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
 
 	if tlsConfig.RootCAs != nil {
 		t.Fatal("Root CAs should not have been set", err)
+	}
+}
+
+// The certificate is set if the client cert and encrypted client key are
+// provided and valid and passphrase can decrypt the key
+func TestConfigClientTLSValidClientCertAndEncryptedKey(t *testing.T) {
+	key, cert := getCertAndEncryptedKey()
+
+	tlsConfig, err := Client(Options{
+		CertFile:   cert,
+		KeyFile:    key,
+		Passphrase: "FooBar123",
+	})
+
+	if err != nil || tlsConfig == nil {
+		t.Fatal("Unable to configure client TLS", err)
+	}
+
+	if len(tlsConfig.Certificates) != 1 {
+		t.Fatal("Unexpected client certificates")
+	}
+}
+
+// The certificate is not set if the provided passphrase cannot decrypt
+// the encrypted key.
+func TestConfigClientTLSNotSetWithInvalidPassphrase(t *testing.T) {
+	key, cert := getCertAndEncryptedKey()
+
+	tlsConfig, err := Client(Options{
+		CertFile:   cert,
+		KeyFile:    key,
+		Passphrase: "InvalidPassphrase",
+	})
+
+	if !IsErrEncryptedKey(err) || tlsConfig != nil {
+		t.Fatal("Expected failure due to incorrect passphrase.")
 	}
 }
 
