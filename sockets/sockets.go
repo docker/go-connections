@@ -1,4 +1,4 @@
-// Package sockets provides helper functions to create and configure Unix or TCP sockets.
+// Package sockets provides helper functions to create and configure Windows, Unix or TCP sockets.
 package sockets
 
 import (
