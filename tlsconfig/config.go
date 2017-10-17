@@ -114,17 +114,17 @@ func isValidMinVersion(version uint16) bool {
 	return ok
 }
 
-// adjustMinVersion sets the MinVersion on `config`, the input configuration.
+// AdjustMinVersion sets the MinVersion on `config`, the input configuration.
 // It assumes the current MinVersion on the `config` is the lowest allowed.
-func adjustMinVersion(options Options, config *tls.Config) error {
-	if options.MinVersion > 0 {
-		if !isValidMinVersion(options.MinVersion) {
-			return fmt.Errorf("Invalid minimum TLS version: %x", options.MinVersion)
+func AdjustMinVersion(minVersion uint16, config *tls.Config) error {
+	if minVersion > 0 {
+		if !isValidMinVersion(minVersion) {
+			return fmt.Errorf("Invalid minimum TLS version: %x", minVersion)
 		}
-		if options.MinVersion < config.MinVersion {
-			return fmt.Errorf("Requested minimum TLS version is too low. Should be at-least: %x", config.MinVersion)
+		if minVersion < config.MinVersion {
+			return fmt.Errorf("Requested minimum TLS version is too low. Should be at-least: %x", minVersion)
 		}
-		config.MinVersion = options.MinVersion
+		config.MinVersion = minVersion
 	}
 
 	return nil
@@ -209,7 +209,7 @@ func Client(options Options) (*tls.Config, error) {
 	}
 	tlsConfig.Certificates = tlsCerts
 
-	if err := adjustMinVersion(options, tlsConfig); err != nil {
+	if err := AdjustMinVersion(options.MinVersion, tlsConfig); err != nil {
 		return nil, err
 	}
 
@@ -236,7 +236,7 @@ func Server(options Options) (*tls.Config, error) {
 		tlsConfig.ClientCAs = CAs
 	}
 
-	if err := adjustMinVersion(options, tlsConfig); err != nil {
+	if err := AdjustMinVersion(options.MinVersion, tlsConfig); err != nil {
 		return nil, err
 	}
 
