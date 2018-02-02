@@ -301,7 +301,7 @@ func TestConfigServerDefaultWithTLSMinimumModifier(t *testing.T) {
 		})
 
 		if servDefault.MinVersion != tlsVersion {
-			t.Fatalf("Unexpected min TLS version for default server TLS config: ", servDefault.MinVersion)
+			t.Fatalf("Unexpected min TLS version for default server TLS config: %d", servDefault.MinVersion)
 		}
 	}
 }
@@ -320,7 +320,7 @@ func TestConfigClientDefaultWithTLSMinimumModifier(t *testing.T) {
 		})
 
 		if clientDefault.MinVersion != tlsVersion {
-			t.Fatalf("Unexpected min TLS version for default client TLS config: ", clientDefault.MinVersion)
+			t.Fatalf("Unexpected min TLS version for default client TLS config: %d", clientDefault.MinVersion)
 		}
 	}
 }
