@@ -85,9 +85,9 @@ func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
 			files[i] = badFile
 
 			result, err := Server(Options{
-				CertFile:   files[0],
-				KeyFile:    files[1],
-				CAFile:     files[2],
+				Cert:       PEMFile(files[0]),
+				Key:        PEMFile(files[1]),
+				CA:         PEMFile(files[2]),
 				ClientAuth: tls.VerifyClientCertIfGiven,
 			})
 			if err == nil || result != nil {
@@ -108,8 +108,8 @@ func TestConfigServerTLSServerCertsOnly(t *testing.T) {
 	}
 
 	tlsConfig, err := Server(Options{
-		CertFile: cert,
-		KeyFile:  key,
+		Cert: PEMFile(cert),
+		Key:  PEMFile(key),
 	})
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure server TLS", err)
@@ -145,10 +145,10 @@ func TestConfigServerTLSClientCANotSetIfClientAuthTooLow(t *testing.T) {
 	ca := getMultiCert()
 
 	tlsConfig, err := Server(Options{
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 		ClientAuth: tls.RequestClientCert,
-		CAFile:     ca,
+		CA:         PEMFile(ca),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -173,10 +173,10 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 	ca := getMultiCert()
 
 	tlsConfig, err := Server(Options{
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 		ClientAuth: tls.VerifyClientCertIfGiven,
-		CAFile:     ca,
+		CA:         PEMFile(ca),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -226,10 +226,10 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
 	// and custom CA-signed certs
 	tlsConfig, err := Server(Options{
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 		ClientAuth: tls.VerifyClientCertIfGiven,
-		CAFile:     ca,
+		CA:         PEMFile(ca),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -245,10 +245,10 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 	// ExclusiveRootPools set and custom CA provided, so system certs should not be verifiable
 	// and custom CA-signed certs should be verifiable
 	tlsConfig, err = Server(Options{
-		CertFile:           cert,
-		KeyFile:            key,
+		Cert:               PEMFile(cert),
+		Key:                PEMFile(key),
 		ClientAuth:         tls.VerifyClientCertIfGiven,
-		CAFile:             ca,
+		CA:                 PEMFile(ca),
 		ExclusiveRootPools: true,
 	})
 
@@ -268,8 +268,8 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 
 	// No CA file provided, system cert should be verifiable only
 	tlsConfig, err = Server(Options{
-		CertFile: cert,
-		KeyFile:  key,
+		Cert: PEMFile(cert),
+		Key:  PEMFile(key),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -336,8 +336,8 @@ func TestConfigServerTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
 	for _, v := range versions {
 		tlsConfig, err := Server(Options{
 			MinVersion: v,
-			CertFile:   cert,
-			KeyFile:    key,
+			Cert:       PEMFile(cert),
+			Key:        PEMFile(key),
 		})
 
 		if err != nil || tlsConfig == nil {
@@ -357,8 +357,8 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
 
 	_, err := Server(Options{
 		MinVersion: tls.VersionSSL30,
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 	})
 
 	if err == nil {
@@ -373,8 +373,8 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
 
 	_, err := Server(Options{
 		MinVersion: 1,
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 	})
 
 	if err == nil {
@@ -387,7 +387,7 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
 func TestConfigClientTLSNoVerify(t *testing.T) {
 	ca := getMultiCert()
 
-	tlsConfig, err := Client(Options{CAFile: ca, InsecureSkipVerify: true})
+	tlsConfig, err := Client(Options{CA: PEMFile(ca), InsecureSkipVerify: true})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
@@ -438,7 +438,7 @@ func TestConfigClientTLSNoRoot(t *testing.T) {
 func TestConfigClientTLSRootCAFileWithOneCert(t *testing.T) {
 	ca := getMultiCert()
 
-	tlsConfig, err := Client(Options{CAFile: ca})
+	tlsConfig, err := Client(Options{CA: PEMFile(ca)})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
@@ -458,7 +458,7 @@ func TestConfigClientTLSRootCAFileWithOneCert(t *testing.T) {
 
 // An error is returned if a root CA is provided but the file doesn't exist.
 func TestConfigClientTLSNonexistentRootCAFile(t *testing.T) {
-	tlsConfig, err := Client(Options{CAFile: "nonexistent"})
+	tlsConfig, err := Client(Options{CA: PEMFile("nonexistent")})
 
 	if err == nil || tlsConfig != nil {
 		t.Fatal("Should not have been able to configure client TLS", err)
@@ -482,7 +482,7 @@ func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 			files := []string{cert, key}
 			files[i] = invalid
 
-			tlsConfig, err := Client(Options{CertFile: files[0], KeyFile: files[1]})
+			tlsConfig, err := Client(Options{Cert: PEMFile(files[0]), Key: PEMFile(files[1])})
 			if err == nil || tlsConfig != nil {
 				t.Fatal("Should not have been able to configure client TLS", err)
 			}
@@ -500,7 +500,49 @@ func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
 		t.Fatal("Unable to load the generated cert and key")
 	}
 
-	tlsConfig, err := Client(Options{CertFile: cert, KeyFile: key})
+	tlsConfig, err := Client(Options{Cert: PEMFile(cert), Key: PEMFile(key)})
+
+	if err != nil || tlsConfig == nil {
+		t.Fatal("Unable to configure client TLS", err)
+	}
+
+	if len(tlsConfig.Certificates) != 1 {
+		t.Fatal("Unexpected client certificates")
+	}
+	if len(tlsConfig.Certificates[0].Certificate) != len(keypair.Certificate) {
+		t.Fatal("Unexpected client certificates")
+	}
+	for i, cert := range tlsConfig.Certificates[0].Certificate {
+		if !bytes.Equal(cert, keypair.Certificate[i]) {
+			t.Fatal("Unexpected client certificates")
+		}
+	}
+
+	if tlsConfig.RootCAs != nil {
+		t.Fatal("Root CAs should not have been set", err)
+	}
+}
+
+// The certificate is set if the client cert and client key are provided and
+// valid.
+func TestConfigClientTLSValidClientCertAndKeyFromMemory(t *testing.T) {
+	key, cert := getCertAndKey()
+
+	keypair, err := tls.LoadX509KeyPair(cert, key)
+	if err != nil {
+		t.Fatal("Unable to load the generated cert and key")
+	}
+
+	certData, err := ioutil.ReadFile(cert)
+	if err != nil {
+		t.Fatal("Unable to load the cert")
+	}
+	keyData, err := ioutil.ReadFile(key)
+	if err != nil {
+		t.Fatal("Unable to load the key")
+	}
+
+	tlsConfig, err := Client(Options{Cert: PEMInMemory(certData), Key: PEMInMemory(keyData)})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
@@ -529,8 +571,8 @@ func TestConfigClientTLSValidClientCertAndEncryptedKey(t *testing.T) {
 	key, cert := getCertAndEncryptedKey()
 
 	tlsConfig, err := Client(Options{
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 		Passphrase: "FooBar123",
 	})
 
@@ -549,8 +591,8 @@ func TestConfigClientTLSNotSetWithInvalidPassphrase(t *testing.T) {
 	key, cert := getCertAndEncryptedKey()
 
 	tlsConfig, err := Client(Options{
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 		Passphrase: "InvalidPassphrase",
 	})
 
@@ -584,7 +626,7 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
 	// and custom CA-signed certs
-	tlsConfig, err := Client(Options{CAFile: ca})
+	tlsConfig, err := Client(Options{CA: PEMFile(ca)})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
@@ -599,7 +641,7 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 	// ExclusiveRootPools set and custom CA provided, so system certs should not be verifiable
 	// and custom CA-signed certs should be verifiable
 	tlsConfig, err = Client(Options{
-		CAFile:             ca,
+		CA:                 PEMFile(ca),
 		ExclusiveRootPools: true,
 	})
 
@@ -642,8 +684,8 @@ func TestConfigClientTLSMinVersionIsSetBasedOnOptions(t *testing.T) {
 
 	tlsConfig, err := Client(Options{
 		MinVersion: tls.VersionTLS12,
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -662,8 +704,8 @@ func TestConfigClientTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
 
 	_, err := Client(Options{
 		MinVersion: tls.VersionTLS11,
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 	})
 
 	if err == nil {
@@ -678,8 +720,8 @@ func TestConfigClientTLSMinVersionNotSetIfMinVersionIsInvalid(t *testing.T) {
 
 	_, err := Client(Options{
 		MinVersion: 1,
-		CertFile:   cert,
-		KeyFile:    key,
+		Cert:       PEMFile(cert),
+		Key:        PEMFile(key),
 	})
 
 	if err == nil {

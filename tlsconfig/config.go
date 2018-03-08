@@ -16,15 +16,47 @@ import (
 	"github.com/pkg/errors"
 )
 
+// PEMSource represents a provider of some PEM Block
+type PEMSource interface {
+	Data() ([]byte, error)
+	Name() string
+}
+
+// PEMFile is a PEMSource backed by a file
+type PEMFile string
+
+// Data returns PEM data from the file
+func (f PEMFile) Data() ([]byte, error) {
+	return ioutil.ReadFile(string(f))
+}
+
+// Name returns the name of the file
+func (f PEMFile) Name() string {
+	return string(f)
+}
+
+// PEMInMemory is a PEMSource from memory
+type PEMInMemory []byte
+
+// Data returns PEM data from memory
+func (m PEMInMemory) Data() ([]byte, error) {
+	return []byte(m), nil
+}
+
+// Name returns <in memory>
+func (m PEMInMemory) Name() string {
+	return "<in memory>"
+}
+
 // Options represents the information needed to create client and server TLS configurations.
 type Options struct {
-	CAFile string
+	CA PEMSource
 
-	// If either CertFile or KeyFile is empty, Client() will not load them
+	// If either Cert or Key is nil, Client() will not load them
 	// preventing the client from authenticating to the server.
 	// However, Server() requires them and will error out if they are empty.
-	CertFile string
-	KeyFile  string
+	Cert PEMSource
+	Key  PEMSource
 
 	// client-only option
 	InsecureSkipVerify bool
@@ -94,7 +126,10 @@ func ClientDefault(ops ...func(*tls.Config)) *tls.Config {
 }
 
 // certPool returns an X.509 certificate pool from `caFile`, the certificate file.
-func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
+func certPool(ca PEMSource, exclusivePool bool) (*x509.CertPool, error) {
+	if ca == nil {
+		return nil, fmt.Errorf("no CA PEM data")
+	}
 	// If we should verify the server, we need to load a trusted ca
 	var (
 		certPool *x509.CertPool
@@ -108,12 +143,12 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
 	}
-	pem, err := ioutil.ReadFile(caFile)
+	pem, err := ca.Data()
 	if err != nil {
-		return nil, fmt.Errorf("could not read CA certificate %q: %v", caFile, err)
+		return nil, fmt.Errorf("could not read CA certificate %q: %v", ca.Name(), err)
 	}
 	if !certPool.AppendCertsFromPEM(pem) {
-		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", caFile)
+		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", ca.Name())
 	}
 	return certPool, nil
 }
@@ -172,18 +207,24 @@ func getPrivateKey(keyBytes []byte, passphrase string) ([]byte, error) {
 // if the key is encrypted, the Passphrase in 'options' will be used to
 // decrypt it.
 func getCert(options Options) ([]tls.Certificate, error) {
-	if options.CertFile == "" && options.KeyFile == "" {
+	if options.Cert == nil && options.Key == nil {
 		return nil, nil
+	}
+	if options.Cert == nil {
+		return nil, errors.New("cert is missing")
+	}
+	if options.Key == nil {
+		return nil, errors.New("key is missing")
 	}
 
 	errMessage := "Could not load X509 key pair"
 
-	cert, err := ioutil.ReadFile(options.CertFile)
+	cert, err := options.Cert.Data()
 	if err != nil {
 		return nil, errors.Wrap(err, errMessage)
 	}
 
-	prKeyBytes, err := ioutil.ReadFile(options.KeyFile)
+	prKeyBytes, err := options.Key.Data()
 	if err != nil {
 		return nil, errors.Wrap(err, errMessage)
 	}
@@ -205,8 +246,8 @@ func getCert(options Options) ([]tls.Certificate, error) {
 func Client(options Options) (*tls.Config, error) {
 	tlsConfig := ClientDefault()
 	tlsConfig.InsecureSkipVerify = options.InsecureSkipVerify
-	if !options.InsecureSkipVerify && options.CAFile != "" {
-		CAs, err := certPool(options.CAFile, options.ExclusiveRootPools)
+	if !options.InsecureSkipVerify && options.CA != nil {
+		CAs, err := certPool(options.CA, options.ExclusiveRootPools)
 		if err != nil {
 			return nil, err
 		}
@@ -230,16 +271,33 @@ func Client(options Options) (*tls.Config, error) {
 func Server(options Options) (*tls.Config, error) {
 	tlsConfig := ServerDefault()
 	tlsConfig.ClientAuth = options.ClientAuth
-	tlsCert, err := tls.LoadX509KeyPair(options.CertFile, options.KeyFile)
+	if options.Cert == nil {
+		return nil, errors.New("cert is missing")
+	}
+	if options.Key == nil {
+		return nil, errors.New("key is missing")
+	}
+	cert, err := options.Cert.Data()
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("Could not load X509 key pair (cert: %q, key: %q): %v", options.CertFile, options.KeyFile, err)
+			return nil, fmt.Errorf("Could not load X509 key pair (cert: %q, key: %q): %v", options.Cert.Name(), options.Key.Name(), err)
 		}
-		return nil, fmt.Errorf("Error reading X509 key pair (cert: %q, key: %q): %v. Make sure the key is not encrypted.", options.CertFile, options.KeyFile, err)
+		return nil, fmt.Errorf("could not read cert data: %s", err)
+	}
+	key, err := options.Key.Data()
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("Could not load X509 key pair (cert: %q, key: %q): %v", options.Cert.Name(), options.Key.Name(), err)
+		}
+		return nil, fmt.Errorf("could not read key data: %s", err)
+	}
+	tlsCert, err := tls.X509KeyPair(cert, key)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading X509 key pair (cert: %q, key: %q): %v. Make sure the key is not encrypted.", options.Cert.Name(), options.Key.Name(), err)
 	}
 	tlsConfig.Certificates = []tls.Certificate{tlsCert}
-	if options.ClientAuth >= tls.VerifyClientCertIfGiven && options.CAFile != "" {
-		CAs, err := certPool(options.CAFile, options.ExclusiveRootPools)
+	if options.ClientAuth >= tls.VerifyClientCertIfGiven && options.CA != nil {
+		CAs, err := certPool(options.CA, options.ExclusiveRootPools)
 		if err != nil {
 			return nil, err
 		}
