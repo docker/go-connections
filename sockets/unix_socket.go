@@ -20,7 +20,8 @@ func NewUnixSocket(path string, gid int) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.Chown(path, 0, gid); err != nil {
+	uid := os.Getuid()
+	if err := os.Chown(path, uid, gid); err != nil {
 		l.Close()
 		return nil, err
 	}
