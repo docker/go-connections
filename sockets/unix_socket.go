@@ -9,7 +9,7 @@ import (
 )
 
 // NewUnixSocket creates a unix socket with the specified path and group.
-func NewUnixSocket(path string, gid int) (net.Listener, error) {
+func NewUnixSocket(path string, uid, gid int) (net.Listener, error) {
 	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
@@ -20,7 +20,6 @@ func NewUnixSocket(path string, gid int) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	uid := os.Getuid()
 	if err := os.Chown(path, uid, gid); err != nil {
 		l.Close()
 		return nil, err
