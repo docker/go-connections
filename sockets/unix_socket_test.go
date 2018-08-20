@@ -1,16 +1,3 @@
-/***************************************************************************
- *
- * Copyright (c) 2017 Baidu.com, Inc. All Rights Reserved
- * @author duanbing(duanbing@baidu.com)
- *
- **************************************************************************/
-
-/**
- * @filename unix_socket_test.go
- * @desc
- * @create time 2018-08-20 17:45:40
-**/
-
 package sockets
 
 import (
