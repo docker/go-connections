@@ -54,7 +54,7 @@ import (
 	"syscall"
 )
 
-// SockOption is function
+// SockOption sets up socket file's creating option
 type SockOption func(string) error
 
 // WithChown modifies the socket file's uid and gid
@@ -78,7 +78,7 @@ func WithChmod(mask os.FileMode) SockOption {
 }
 
 // NewUnixSocketWithOpts creates a unix socket with the specified options
-func NewUnixSocketWithOpts(path string, opts ...func(string) error) (net.Listener, error) {
+func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error) {
 	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
