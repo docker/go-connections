@@ -1,5 +1,51 @@
 // +build !windows
 
+/*
+Package sockets is a simple unix domain socket wrapper.
+
+Usage
+
+For example:
+
+	import(
+		"fmt"
+		"net"
+		"os"
+		"github.com/docker/go-connections/sockets"
+	)
+
+	func main() {
+		l, err := sockets.NewUnixSocketWithOpts("/path/to/sockets",
+			sockets.WithChown(0,0),sockets.WithChmod(0660))
+		if err != nil {
+			panic(err)
+		}
+		echoStr := "hello"
+
+		go func() {
+			for {
+				conn, err := l.Accept()
+				if err != nil {
+					return
+				}
+				conn.Write([]byte(echoStr))
+				conn.Close()
+			}
+		}()
+
+		conn, err := net.Dial("unix", path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := make([]byte, 5)
+		if _, err := conn.Read(buf); err != nil {
+			panic(err)
+		} else if string(buf) != echoStr {
+			panic(fmt.Errorf("Msg may lost"))
+		}
+	}
+*/
 package sockets
 
 import (
@@ -8,11 +54,10 @@ import (
 	"syscall"
 )
 
-// Usage:
-//     l, err := sockets.NewUnixSocket("/path/to/sockets",sockets.WithChown(0,0),sockets.WithChmod(0660))
-
+// SockOption is function
 type SockOption func(string) error
 
+// WithChown modifies the socket file's uid and gid
 func WithChown(uid, gid int) SockOption {
 	return func(path string) error {
 		if err := os.Chown(path, uid, gid); err != nil {
@@ -22,6 +67,7 @@ func WithChown(uid, gid int) SockOption {
 	}
 }
 
+// WithChmod modifies socket file's access mode
 func WithChmod(mask os.FileMode) SockOption {
 	return func(path string) error {
 		if err := os.Chmod(path, mask); err != nil {
@@ -31,7 +77,7 @@ func WithChmod(mask os.FileMode) SockOption {
 	}
 }
 
-// NewUnixSocket creates a unix socket with the specified options
+// NewUnixSocketWithOpts creates a unix socket with the specified options
 func NewUnixSocketWithOpts(path string, opts ...func(string) error) (net.Listener, error) {
 	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
 		return nil, err
