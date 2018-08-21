@@ -101,6 +101,6 @@ func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error
 }
 
 // NewUnixSocket creates a unix socket with the specified path and group.
-func NewUnixSocket(path string, uid int) (net.Listener, error) {
-	return NewUnixSocketWithOpts(path, WithChown(uid, 0), WithChmod(0666))
+func NewUnixSocket(path string, gid int) (net.Listener, error) {
+	return NewUnixSocketWithOpts(path, WithChown(0, gid), WithChmod(0660))
 }
