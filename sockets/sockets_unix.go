@@ -18,8 +18,11 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	}
 	// No need for compression in local communications.
 	tr.DisableCompression = true
-	tr.Dial = func(_, _ string) (net.Conn, error) {
-		return net.DialTimeout(proto, addr, defaultTimeout)
+	dialer := &net.Dialer{
+		Timeout: defaultTimeout,
+	}
+	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return dialer.DialContext(ctx, proto, addr)
 	}
 	return nil
 }
