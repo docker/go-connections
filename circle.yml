@@ -11,7 +11,7 @@ jobs:
       - run:
           name: Get dependencies
           command: |
-            go get -d github.com/golang/lint/golint &&
+            go get -u golang.org/x/lint/golint &&
             go get -d github.com/pkg/errors &&
             go get -d github.com/stretchr/testify &&
             go get -d golang.org/x/net/proxy
