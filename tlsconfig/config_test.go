@@ -356,7 +356,7 @@ func TestConfigServerTLSMinVersionNotSetIfMinVersionIsTooLow(t *testing.T) {
 	key, cert := getCertAndKey()
 
 	_, err := Server(Options{
-		MinVersion: tls.VersionSSL30,
+		MinVersion: tls.VersionTLS10,
 		CertFile:   cert,
 		KeyFile:    key,
 	})
