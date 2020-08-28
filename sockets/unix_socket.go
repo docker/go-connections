@@ -86,8 +86,18 @@ func WithChmod(mask os.FileMode) SockOption {
 // this should only be for a short duration, it may affect other processes that
 // create files/directories during that period.
 func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error) {
+	// Using syscall.Unlink(), not os.Remove() to prevent deleting the socket if it's in use
 	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
-		return nil, err
+		if err != syscall.EISDIR {
+			// On Linux, attempting to remove a directory returns syscall.EISDIR,
+			// in which case we try to remove the directory. MacOS does not return
+			// this error, so we'll return immediately, see:
+			// https://github.com/golang/go/blob/6b420169d798c7ebe733487b56ea5c3fa4aab5ce/src/os/file_unix.go#L300-L311
+			return nil, err
+		}
+		if err := syscall.Rmdir(path); err != nil {
+			return nil, err
+		}
 	}
 
 	// net.Listen does not allow for permissions to be set. As a result, when

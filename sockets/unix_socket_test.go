@@ -4,8 +4,11 @@ package sockets
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
+	"path"
+	"runtime"
 	"syscall"
 	"testing"
 )
@@ -74,4 +77,49 @@ func TestUnixSocketWithOpts(t *testing.T) {
 		}
 	}
 	runTest(t, path, l, echoStr)
+}
+
+func TestUnixSocketConflictDirectory(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", t.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	t.Run("conflicting directory", func(t *testing.T) {
+		if runtime.GOOS == "darwin" {
+			t.Skip("not supported on macOS")
+		}
+		path := path.Join(tmpDir, "test.sock")
+
+		// Create a conflicting directory at the socket location
+		err = os.MkdirAll(path, 0700)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		l, err := NewUnixSocketWithOpts(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer l.Close()
+		runTest(t, path, l, "hello")
+	})
+
+	t.Run("conflicting file", func(t *testing.T) {
+		// Create a conflicting file at the socket location
+		path := path.Join(tmpDir, "test2.sock")
+		f, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+
+		l, err := NewUnixSocketWithOpts(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer l.Close()
+		runTest(t, path, l, "hello")
+	})
 }
