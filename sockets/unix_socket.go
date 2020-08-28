@@ -79,7 +79,7 @@ func WithChmod(mask os.FileMode) SockOption {
 
 // NewUnixSocketWithOpts creates a unix socket with the specified options
 func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error) {
-	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 	mask := syscall.Umask(0777)
