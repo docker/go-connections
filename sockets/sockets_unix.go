@@ -3,7 +3,6 @@
 package sockets
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
