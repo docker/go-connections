@@ -31,7 +31,7 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 		if err != nil {
 			return err
 		}
-		tr.DialContext = dialer.DialContext
+		tr.Dial = dialer.Dial
 	}
 	return nil
 }
