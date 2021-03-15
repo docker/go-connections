@@ -22,6 +22,11 @@ jobs:
       - run:
           name: gofmt
           command: test -z "$(gofmt -s -l . | tee /dev/stderr)"
+      - run:
+          name: Run tests
+          command: sudo -E env PATH=$PATH go test -v ./...
+          environment:
+            GOOS: linux
       # make sure that it passes build on both Linux and Windows
       - run:
           name: Build for Linux
