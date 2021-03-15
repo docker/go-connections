@@ -33,7 +33,7 @@ func PartParser(template, data string) (map[string]string, error) {
 // ParsePortRange parses and validates the specified string as a port-range (8000-9000)
 func ParsePortRange(ports string) (uint64, uint64, error) {
 	if ports == "" {
-		return 0, 0, fmt.Errorf("Empty string specified for ports.")
+		return 0, 0, fmt.Errorf("Empty string specified for ports")
 	}
 	if !strings.Contains(ports, "-") {
 		start, err := strconv.ParseUint(ports, 10, 16)
