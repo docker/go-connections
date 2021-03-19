@@ -79,8 +79,18 @@ func WithChmod(mask os.FileMode) SockOption {
 
 // NewUnixSocketWithOpts creates a unix socket with the specified options
 func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error) {
+	// Using syscall.Unlink(), not os.Remove() to prevent deleting the socket if it's in use
 	if err := syscall.Unlink(path); err != nil && !os.IsNotExist(err) {
-		return nil, err
+		if err != syscall.EISDIR {
+			// On Linux, attempting to remove a directory returns syscall.EISDIR,
+			// in which case we try to remove the directory. MacOS does not return
+			// this error, so we'll return immediately, see:
+			// https://github.com/golang/go/blob/6b420169d798c7ebe733487b56ea5c3fa4aab5ce/src/os/file_unix.go#L300-L311
+			return nil, err
+		}
+		if err := syscall.Rmdir(path); err != nil {
+			return nil, err
+		}
 	}
 	mask := syscall.Umask(0777)
 	defer syscall.Umask(mask)
