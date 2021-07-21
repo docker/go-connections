@@ -15,8 +15,8 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 			if err != nil {
 				return
 			}
-			conn.Write([]byte(echoStr))
-			conn.Close()
+			_, _ = conn.Write([]byte(echoStr))
+			_ = conn.Close()
 		}
 	}()
 

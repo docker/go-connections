@@ -41,7 +41,7 @@ func (proxy *TCPProxy) clientLoop(client *net.TCPConn, quit chan bool) {
 	backend, err := net.DialTCP("tcp", nil, proxy.backendAddr)
 	if err != nil {
 		proxy.Logger.Printf("Can't forward traffic to backend tcp/%v: %s\n", proxy.backendAddr, err)
-		client.Close()
+		_ = client.Close()
 		return
 	}
 
@@ -52,10 +52,10 @@ func (proxy *TCPProxy) clientLoop(client *net.TCPConn, quit chan bool) {
 			// If the socket we are writing to is shutdown with
 			// SHUT_WR, forward it to the other end of the pipe:
 			if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
-				from.CloseWrite()
+				_ = from.CloseWrite()
 			}
 		}
-		to.CloseRead()
+		_ = to.CloseRead()
 		event <- written
 	}
 
@@ -69,16 +69,16 @@ func (proxy *TCPProxy) clientLoop(client *net.TCPConn, quit chan bool) {
 			transferred += written
 		case <-quit:
 			// Interrupt the two brokers and "join" them.
-			client.Close()
-			backend.Close()
+			_ = client.Close()
+			_ = backend.Close()
 			for ; i < 2; i++ {
 				transferred += <-event
 			}
 			return
 		}
 	}
-	client.Close()
-	backend.Close()
+	_ = client.Close()
+	_ = backend.Close()
 }
 
 // Run starts forwarding the traffic using TCP.
@@ -96,7 +96,7 @@ func (proxy *TCPProxy) Run() {
 }
 
 // Close stops forwarding the traffic.
-func (proxy *TCPProxy) Close() { proxy.listener.Close() }
+func (proxy *TCPProxy) Close() { _ = proxy.listener.Close() }
 
 // FrontendAddr returns the TCP address on which the proxy is listening.
 func (proxy *TCPProxy) FrontendAddr() net.Addr { return proxy.frontendAddr }

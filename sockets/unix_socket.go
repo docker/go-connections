@@ -92,7 +92,7 @@ func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error
 
 	for _, op := range opts {
 		if err := op(path); err != nil {
-			l.Close()
+			_ = l.Close()
 			return nil, err
 		}
 	}

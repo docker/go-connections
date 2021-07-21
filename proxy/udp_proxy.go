@@ -80,12 +80,12 @@ func (proxy *UDPProxy) replyLoop(proxyConn *net.UDPConn, clientAddr *net.UDPAddr
 		proxy.connTrackLock.Lock()
 		delete(proxy.connTrackTable, *clientKey)
 		proxy.connTrackLock.Unlock()
-		proxyConn.Close()
+		_ = proxyConn.Close()
 	}()
 
 	readBuf := make([]byte, UDPBufSize)
 	for {
-		proxyConn.SetReadDeadline(time.Now().Add(UDPConnTrackTimeout))
+		_ = proxyConn.SetReadDeadline(time.Now().Add(UDPConnTrackTimeout))
 	again:
 		read, err := proxyConn.Read(readBuf)
 		if err != nil {
@@ -151,11 +151,11 @@ func (proxy *UDPProxy) Run() {
 
 // Close stops forwarding the traffic.
 func (proxy *UDPProxy) Close() {
-	proxy.listener.Close()
+	_ = proxy.listener.Close()
 	proxy.connTrackLock.Lock()
 	defer proxy.connTrackLock.Unlock()
 	for _, conn := range proxy.connTrackTable {
-		conn.Close()
+		_ = conn.Close()
 	}
 }
 

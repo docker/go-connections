@@ -477,7 +477,7 @@ func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 		t.Fatal("Unable to create temporary empty file")
 	}
 	defer os.Remove(tempFile.Name())
-	tempFile.Close()
+	_ = tempFile.Close()
 
 	for i := 0; i < 2; i++ {
 		for _, invalid := range []string{"not-a-file", "", tempFile.Name()} {
