@@ -8,11 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	// portSpecTemplate is the expected format for port specifications
-	portSpecTemplate = "ip:hostPort:containerPort"
-)
-
 // PortBinding represents a binding between a Host IP address and a Host Port
 type PortBinding struct {
 	// HostIP is the host IP Address
@@ -158,17 +153,17 @@ type PortMapping struct {
 func splitParts(rawport string) (string, string, string) {
 	parts := strings.Split(rawport, ":")
 	n := len(parts)
-	containerport := parts[n-1]
+	containerPort := parts[n-1]
 
 	switch n {
 	case 1:
-		return "", "", containerport
+		return "", "", containerPort
 	case 2:
-		return "", parts[0], containerport
+		return "", parts[0], containerPort
 	case 3:
-		return parts[0], parts[1], containerport
+		return parts[0], parts[1], containerPort
 	default:
-		return strings.Join(parts[:n-2], ":"), parts[n-2], containerport
+		return strings.Join(parts[:n-2], ":"), parts[n-2], containerPort
 	}
 }
 

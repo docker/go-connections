@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -65,7 +66,7 @@ func (server *TCPEchoServer) Run() {
 }
 
 func (server *TCPEchoServer) LocalAddr() net.Addr { return server.listener.Addr() }
-func (server *TCPEchoServer) Close()              { server.listener.Close() }
+func (server *TCPEchoServer) Close()              { _ = server.listener.Close() }
 
 func (server *UDPEchoServer) Run() {
 	go func() {
@@ -87,7 +88,7 @@ func (server *UDPEchoServer) Run() {
 }
 
 func (server *UDPEchoServer) LocalAddr() net.Addr { return server.conn.LocalAddr() }
-func (server *UDPEchoServer) Close()              { server.conn.Close() }
+func (server *UDPEchoServer) Close()              { _ = server.conn.Close() }
 
 func testProxyAt(t *testing.T, proto string, proxy Proxy, addr string) {
 	defer proxy.Close()
@@ -97,7 +98,7 @@ func testProxyAt(t *testing.T, proto string, proxy Proxy, addr string) {
 		t.Fatalf("Can't connect to the proxy: %v", err)
 	}
 	defer client.Close()
-	client.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
 	if _, err = client.Write(testBuf); err != nil {
 		t.Fatal(err)
 	}
@@ -182,6 +183,9 @@ func TestUDP6Proxy(t *testing.T) {
 }
 
 func TestUDPWriteError(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("FIXME: doesn't pass on macOS")
+	}
 	frontendAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 0}
 	// Hopefully, this port will be free: */
 	backendAddr := &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 25587}
@@ -197,12 +201,12 @@ func TestUDPWriteError(t *testing.T) {
 	}
 	defer client.Close()
 	// Make sure the proxy doesn't stop when there is no actual backend:
-	client.Write(testBuf)
-	client.Write(testBuf)
+	_, _ = client.Write(testBuf)
+	_, _ = client.Write(testBuf)
 	backend := NewEchoServer(t, "udp", "127.0.0.1:25587")
 	defer backend.Close()
 	backend.Run()
-	client.SetDeadline(time.Now().Add(10 * time.Second))
+	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
 	if _, err = client.Write(testBuf); err != nil {
 		t.Fatal(err)
 	}

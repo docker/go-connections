@@ -11,8 +11,8 @@ func TestInmemSocket(t *testing.T) {
 			if err != nil {
 				return
 			}
-			conn.Write([]byte("hello"))
-			conn.Close()
+			_, _ = conn.Write([]byte("hello"))
+			_ = conn.Close()
 		}
 	}()
 
@@ -31,8 +31,8 @@ func TestInmemSocket(t *testing.T) {
 		t.Fatalf("expected `hello`, got %s", string(buf))
 	}
 
-	l.Close()
-	conn, err = l.Dial("test", "test")
+	_ = l.Close()
+	_, err = l.Dial("test", "test")
 	if err != errClosed {
 		t.Fatalf("expected `errClosed` error, got %v", err)
 	}

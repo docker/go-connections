@@ -1,3 +1,5 @@
+// +build !windows
+
 package sockets
 
 import (
@@ -15,8 +17,8 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 			if err != nil {
 				return
 			}
-			conn.Write([]byte(echoStr))
-			conn.Close()
+			_, _ = conn.Write([]byte(echoStr))
+			_ = conn.Close()
 		}
 	}()
 
@@ -35,6 +37,9 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 
 // TestNewUnixSocket run under root user.
 func TestNewUnixSocket(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("requires root")
+	}
 	gid := os.Getgid()
 	path := "/tmp/test.sock"
 	echoStr := "hello"
