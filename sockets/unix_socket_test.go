@@ -37,6 +37,9 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 
 // TestNewUnixSocket run under root user.
 func TestNewUnixSocket(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("requires root")
+	}
 	gid := os.Getgid()
 	path := "/tmp/test.sock"
 	echoStr := "hello"
