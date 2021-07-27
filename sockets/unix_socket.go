@@ -42,7 +42,7 @@ For example:
 		if _, err := conn.Read(buf); err != nil {
 			panic(err)
 		} else if string(buf) != echoStr {
-			panic(fmt.Errorf("Msg may lost"))
+			panic(fmt.Errorf("msg may lost"))
 		}
 	}
 */

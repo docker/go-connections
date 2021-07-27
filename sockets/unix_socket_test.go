@@ -31,7 +31,7 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 	if _, err := conn.Read(buf); err != nil {
 		t.Fatal(err)
 	} else if string(buf) != echoStr {
-		t.Fatal(fmt.Errorf("Msg may lost"))
+		t.Fatal(fmt.Errorf("msg may lost"))
 	}
 }
 
