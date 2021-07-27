@@ -3,7 +3,6 @@ package sockets
 
 import (
 	"errors"
-	"net"
 	"net/http"
 	"time"
 )
@@ -25,13 +24,6 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 		return configureNpipeTransport(tr, proto, addr)
 	default:
 		tr.Proxy = http.ProxyFromEnvironment
-		dialer, err := DialerFromEnvironment(&net.Dialer{
-			Timeout: defaultTimeout,
-		})
-		if err != nil {
-			return err
-		}
-		tr.Dial = dialer.Dial //nolint: staticcheck // SA1019: tr.Dial is deprecated: Use DialContext instead
 	}
 	return nil
 }
