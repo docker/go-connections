@@ -2,8 +2,13 @@
 package sockets
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
+	"syscall"
+	"time"
 )
 
 // ErrProtocolNotAvailable is returned when a given transport protocol is not provided by the operating system.
@@ -21,6 +26,26 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 		return configureNpipeTransport(tr, proto, addr)
 	default:
 		tr.Proxy = http.ProxyFromEnvironment
+	}
+	return nil
+}
+
+const (
+	defaultTimeout        = 10 * time.Second
+	maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
+)
+
+func configureUnixTransport(tr *http.Transport, proto, addr string) error {
+	if len(addr) > maxUnixSocketPathSize {
+		return fmt.Errorf("Unix socket path %q is too long", addr)
+	}
+	// No need for compression in local communications.
+	tr.DisableCompression = true
+	dialer := &net.Dialer{
+		Timeout: defaultTimeout,
+	}
+	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		return dialer.DialContext(ctx, proto, addr)
 	}
 	return nil
 }

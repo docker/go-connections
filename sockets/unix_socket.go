@@ -1,5 +1,3 @@
-// +build !windows
-
 /*
 Package sockets is a simple unix domain socket wrapper.
 
@@ -103,9 +101,9 @@ func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error
 	// We don't use "defer" here, to reset the umask to its original value as soon
 	// as possible. Ideally we'd be able to detect if WithChmod() was passed as
 	// an option, and skip changing umask if default permissions are used.
-	origUmask := syscall.Umask(0777)
+	origUmask := umask(0777)
 	l, err := net.Listen("unix", path)
-	syscall.Umask(origUmask)
+	umask(origUmask)
 	if err != nil {
 		return nil, err
 	}
