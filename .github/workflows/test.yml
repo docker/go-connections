@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        go: ["1.13.x", "1.15.x", "1.16.x"]
+        go: ["1.13.x", "1.20.x", "1.21.x"]
         platform: [ubuntu-20.04]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        go: ["1.13.x", "1.15.x", "1.16.x"]
+        go: ["1.13.x", "1.20.x", "1.21.x"]
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
