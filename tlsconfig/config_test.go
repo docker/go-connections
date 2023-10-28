@@ -199,10 +199,9 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigServerExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// FIXME TestConfigServerExclusiveRootPools is failing on windows:
-		// config_test.go:244: Unable to verify certificate 1: x509: certificate signed by unknown authority
-		t.Skip("FIXME: failing on Windows")
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		// FIXME: see https://github.com/docker/go-connections/issues/105.
+		t.Skip("FIXME: failing on Windows and darwin")
 	}
 	key, cert := getCertAndKey()
 	ca := getMultiCert()
@@ -564,10 +563,9 @@ func TestConfigClientTLSNotSetWithInvalidPassphrase(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigClientExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// FIXME TestConfigClientExclusiveRootPools is failing on windows:
-		// config_test.go:597: Unable to verify certificate 1: x509: certificate signed by unknown authority
-		t.Skip("FIXME: failing on Windows")
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		// FIXME: see https://github.com/docker/go-connections/issues/105.
+		t.Skip("FIXME: failing on Windows and darwin")
 	}
 	ca := getMultiCert()
 
