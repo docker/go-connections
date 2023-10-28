@@ -66,3 +66,4 @@ jobs:
         with:
           # must be specified without patch version
           version: v1.55
+          args: --timeout=5m
