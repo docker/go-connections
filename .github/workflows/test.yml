@@ -12,6 +12,7 @@ jobs:
     name: Test ${{ matrix.platform }} (${{ matrix.go }})
     timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         go: ["1.13.x", "1.20.x", "1.21.x"]
         platform: [ubuntu-20.04]
@@ -34,6 +35,7 @@ jobs:
     name: Test ${{ matrix.platform }} (${{ matrix.go }})
     timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         go: ["1.13.x", "1.20.x", "1.21.x"]
         platform: [windows-latest, macos-latest]
@@ -54,6 +56,7 @@ jobs:
     name: Lint ${{ matrix.platform }}
     timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
         platform: [ubuntu-20.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
