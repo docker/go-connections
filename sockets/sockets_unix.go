@@ -3,7 +3,6 @@
 package sockets
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,10 +10,7 @@ import (
 	"time"
 )
 
-const (
-	defaultTimeout        = 10 * time.Second
-	maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
-)
+const maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
 
 func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	if len(addr) > maxUnixSocketPathSize {
@@ -22,11 +18,8 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	}
 	// No need for compression in local communications.
 	tr.DisableCompression = true
-	dialer := &net.Dialer{
-		Timeout: defaultTimeout,
-	}
-	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
-		return dialer.DialContext(ctx, proto, addr)
+	tr.Dial = func(_, _ string) (net.Conn, error) {
+		return net.DialTimeout(proto, addr, defaultTimeout)
 	}
 	return nil
 }
