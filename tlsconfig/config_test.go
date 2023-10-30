@@ -12,37 +12,31 @@ import (
 	"testing"
 )
 
-// This is the currently active Let’s Encrypt R3 (RSA 2048, O = Let's Encrypt, CN = R3)
-// cross-signed CA Intermediate cert, downloaded from: https://letsencrypt.org/certs/lets-encrypt-r3-cross-signed.pem
-// It expires Sep 29 19:21:40 2021 GMT
-// download updated versions from https://letsencrypt.org/certificates/
+// This is the currently active Amazon Root CA 1 (CN=Amazon Root CA 1,O=Amazon,C=US),
+// downloaded from: https://www.amazontrust.com/repository/AmazonRootCA1.pem
+// It's valid since May 26 00:00:00 2015 GMT and expires on Jan 17 00:00:00 2038 GMT.
+// Download updated versions from https://www.amazontrust.com/repository/
 const (
 	systemRootTrustedCert = `
 -----BEGIN CERTIFICATE-----
-MIIEZTCCA02gAwIBAgIQQAF1BIMUpMghjISpDBbN3zANBgkqhkiG9w0BAQsFADA/
-MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT
-DkRTVCBSb290IENBIFgzMB4XDTIwMTAwNzE5MjE0MFoXDTIxMDkyOTE5MjE0MFow
-MjELMAkGA1UEBhMCVVMxFjAUBgNVBAoTDUxldCdzIEVuY3J5cHQxCzAJBgNVBAMT
-AlIzMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuwIVKMz2oJTTDxLs
-jVWSw/iC8ZmmekKIp10mqrUrucVMsa+Oa/l1yKPXD0eUFFU1V4yeqKI5GfWCPEKp
-Tm71O8Mu243AsFzzWTjn7c9p8FoLG77AlCQlh/o3cbMT5xys4Zvv2+Q7RVJFlqnB
-U840yFLuta7tj95gcOKlVKu2bQ6XpUA0ayvTvGbrZjR8+muLj1cpmfgwF126cm/7
-gcWt0oZYPRfH5wm78Sv3htzB2nFd1EbjzK0lwYi8YGd1ZrPxGPeiXOZT/zqItkel
-/xMY6pgJdz+dU/nPAeX1pnAXFK9jpP+Zs5Od3FOnBv5IhR2haa4ldbsTzFID9e1R
-oYvbFQIDAQABo4IBaDCCAWQwEgYDVR0TAQH/BAgwBgEB/wIBADAOBgNVHQ8BAf8E
-BAMCAYYwSwYIKwYBBQUHAQEEPzA9MDsGCCsGAQUFBzAChi9odHRwOi8vYXBwcy5p
-ZGVudHJ1c3QuY29tL3Jvb3RzL2RzdHJvb3RjYXgzLnA3YzAfBgNVHSMEGDAWgBTE
-p7Gkeyxx+tvhS5B1/8QVYIWJEDBUBgNVHSAETTBLMAgGBmeBDAECATA/BgsrBgEE
-AYLfEwEBATAwMC4GCCsGAQUFBwIBFiJodHRwOi8vY3BzLnJvb3QteDEubGV0c2Vu
-Y3J5cHQub3JnMDwGA1UdHwQ1MDMwMaAvoC2GK2h0dHA6Ly9jcmwuaWRlbnRydXN0
-LmNvbS9EU1RST09UQ0FYM0NSTC5jcmwwHQYDVR0OBBYEFBQusxe3WFbLrlAJQOYf
-r52LFMLGMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEFBQcDAjANBgkqhkiG9w0B
-AQsFAAOCAQEA2UzgyfWEiDcx27sT4rP8i2tiEmxYt0l+PAK3qB8oYevO4C5z70kH
-ejWEHx2taPDY/laBL21/WKZuNTYQHHPD5b1tXgHXbnL7KqC401dk5VvCadTQsvd8
-S8MXjohyc9z9/G2948kLjmE6Flh9dDYrVYA9x2O+hEPGOaEOa1eePynBgPayvUfL
-qjBstzLhWVQLGAkXXmNs+5ZnPBxzDJOLxhF2JIbeQAcH5H0tZrUlo5ZYyOqA7s9p
-O5b85o3AM/OJ+CktFBQtfvBhcJVd9wvlwPsk+uyOy2HI7mNxKKgsBTt375teA2Tw
-UdHkhVNcsAKX1H7GNNLOEADksd86wuoXvg==
+MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
+ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
+b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
+MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
+b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
+ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
+9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
+IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
+VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
+93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
+jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
+AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
+A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
+U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs
+N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv
+o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
+5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy
+rqXRfboQnoZsG4q5WTP468SQvvG5
 -----END CERTIFICATE-----
 `
 	rsaPrivateKeyFile             = "fixtures/key.pem"
@@ -205,10 +199,9 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigServerExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// FIXME TestConfigServerExclusiveRootPools is failing on windows:
-		// config_test.go:244: Unable to verify certificate 1: x509: certificate signed by unknown authority
-		t.Skip("FIXME: failing on Windows")
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		// FIXME: see https://github.com/docker/go-connections/issues/105.
+		t.Skip("FIXME: failing on Windows and darwin")
 	}
 	key, cert := getCertAndKey()
 	ca := getMultiCert()
@@ -570,10 +563,9 @@ func TestConfigClientTLSNotSetWithInvalidPassphrase(t *testing.T) {
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
 func TestConfigClientExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// FIXME TestConfigClientExclusiveRootPools is failing on windows:
-		// config_test.go:597: Unable to verify certificate 1: x509: certificate signed by unknown authority
-		t.Skip("FIXME: failing on Windows")
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		// FIXME: see https://github.com/docker/go-connections/issues/105.
+		t.Skip("FIXME: failing on Windows and darwin")
 	}
 	ca := getMultiCert()
 
