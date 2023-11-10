@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"runtime"
@@ -69,7 +68,7 @@ func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
 	key, cert := getCertAndKey()
 	ca := getMultiCert()
 
-	tempFile, err := ioutil.TempFile("", "cert-test")
+	tempFile, err := os.CreateTemp("", "cert-test")
 	if err != nil {
 		t.Fatal("Unable to create temporary empty file")
 	}
@@ -206,7 +205,7 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 	key, cert := getCertAndKey()
 	ca := getMultiCert()
 
-	caBytes, err := ioutil.ReadFile(ca)
+	caBytes, err := os.ReadFile(ca)
 	if err != nil {
 		t.Fatal("Unable to read CA certs", err)
 	}
@@ -471,7 +470,7 @@ func TestConfigClientTLSNonexistentRootCAFile(t *testing.T) {
 func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 	key, cert := getCertAndKey()
 
-	tempFile, err := ioutil.TempFile("", "cert-test")
+	tempFile, err := os.CreateTemp("", "cert-test")
 	if err != nil {
 		t.Fatal("Unable to create temporary empty file")
 	}
@@ -569,7 +568,7 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 	}
 	ca := getMultiCert()
 
-	caBytes, err := ioutil.ReadFile(ca)
+	caBytes, err := os.ReadFile(ca)
 	if err != nil {
 		t.Fatal("Unable to read CA certs", err)
 	}
