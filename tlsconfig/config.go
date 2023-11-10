@@ -1,6 +1,7 @@
 // Package tlsconfig provides primitives to retrieve secure-enough TLS configurations for both clients and servers.
 //
 // As a reminder from https://golang.org/pkg/crypto/tls/#Config:
+//
 //	A Config structure is used to configure a TLS client or server. After one has been passed to a TLS function it must not be modified.
 //	A Config may be reused; the tls package will also not modify it.
 package tlsconfig
@@ -111,6 +112,15 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", caFile)
 	}
 	return certPool, nil
+}
+
+// allTLSVersions lists all the TLS versions and is used by the code that validates
+// a uint16 value as a TLS version.
+var allTLSVersions = map[uint16]struct{}{
+	tls.VersionTLS10: {},
+	tls.VersionTLS11: {},
+	tls.VersionTLS12: {},
+	tls.VersionTLS13: {},
 }
 
 // isValidMinVersion checks that the input value is a valid tls minimum version
