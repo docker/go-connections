@@ -52,10 +52,10 @@ func (proxy *TCPProxy) clientLoop(client *net.TCPConn, quit chan bool) {
 			// If the socket we are writing to is shutdown with
 			// SHUT_WR, forward it to the other end of the pipe:
 			if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
-				_ = from.CloseWrite()
+				_ = from.CloseRead()
 			}
 		}
-		_ = to.CloseRead()
+		_ = to.CloseWrite()
 		event <- written
 	}
 
