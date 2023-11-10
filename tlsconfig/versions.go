@@ -1,5 +1,3 @@
-// +build !go1.13
-
 package tlsconfig
 
 import (
@@ -12,4 +10,5 @@ var allTLSVersions = map[uint16]struct{}{
 	tls.VersionTLS10: {},
 	tls.VersionTLS11: {},
 	tls.VersionTLS12: {},
+	tls.VersionTLS13: {},
 }
