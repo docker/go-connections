@@ -36,7 +36,12 @@ type Options struct {
 	ExclusiveRootPools bool
 	MinVersion         uint16
 	// If Passphrase is set, it will be used to decrypt a TLS private key
-	// if the key is encrypted
+	// if the key is encrypted.
+	//
+	// Deprecated: Use of encrypted TLS private keys has been deprecated, and
+	// will be removed in a future release. Golang has deprecated support for
+	// legacy PEM encryption (as specified in RFC 1423), as it is insecure by
+	// design (see https://go-review.googlesource.com/c/go/+/264159).
 	Passphrase string
 }
 
@@ -132,7 +137,12 @@ func adjustMinVersion(options Options, config *tls.Config) error {
 }
 
 // IsErrEncryptedKey returns true if the 'err' is an error of incorrect
-// password when trying to decrypt a TLS private key
+// password when trying to decrypt a TLS private key.
+//
+// Deprecated: Use of encrypted TLS private keys has been deprecated, and
+// will be removed in a future release. Golang has deprecated support for
+// legacy PEM encryption (as specified in RFC 1423), as it is insecure by
+// design (see https://go-review.googlesource.com/c/go/+/264159).
 func IsErrEncryptedKey(err error) bool {
 	return errors.Cause(err) == x509.IncorrectPasswordError
 }
