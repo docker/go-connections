@@ -1,4 +1,4 @@
-// +build !windows
+//go:build !windows
 
 package sockets
 
@@ -53,7 +53,7 @@ func TestNewUnixSocket(t *testing.T) {
 
 func TestUnixSocketWithOpts(t *testing.T) {
 	uid, gid := os.Getuid(), os.Getgid()
-	perms := os.FileMode(0660)
+	perms := os.FileMode(0o660)
 	path := "/tmp/test.sock"
 	echoStr := "hello"
 	l, err := NewUnixSocketWithOpts(path, WithChown(uid, gid), WithChmod(perms))

@@ -14,18 +14,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.13.x", "1.20.x", "1.21.x"]
+        go: ["1.18.x", "1.20.x", "1.21.x"]
         platform: [ubuntu-20.04]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go ${{ matrix.go }}
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v4
       with:
         go-version: ${{ matrix.go }}
     - name: Setup IPv6
       run: sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
     - name: Build for ${{ matrix.platform }}
       run: go build ./...
     - name: Test
@@ -37,16 +37,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.13.x", "1.20.x", "1.21.x"]
+        go: ["1.18.x", "1.20.x", "1.21.x"]
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Install Go ${{ matrix.go }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Build for ${{ matrix.platform }}
         run: go build ./...
       - name: Test
@@ -61,8 +61,13 @@ jobs:
         platform: [ubuntu-20.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v2
-      - uses: golangci/golangci-lint-action@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: "1.21.x"
+          cache: false
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
         with:
           # must be specified without patch version
           version: v1.55

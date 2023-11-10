@@ -1,6 +1,7 @@
 // Package tlsconfig provides primitives to retrieve secure-enough TLS configurations for both clients and servers.
 //
 // As a reminder from https://golang.org/pkg/crypto/tls/#Config:
+//
 //	A Config structure is used to configure a TLS client or server. After one has been passed to a TLS function it must not be modified.
 //	A Config may be reused; the tls package will also not modify it.
 package tlsconfig
@@ -11,7 +12,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 )
 
@@ -103,7 +103,7 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
 	}
-	pemData, err := ioutil.ReadFile(caFile)
+	pemData, err := os.ReadFile(caFile)
 	if err != nil {
 		return nil, fmt.Errorf("could not read CA certificate %q: %v", caFile, err)
 	}
@@ -111,6 +111,15 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", caFile)
 	}
 	return certPool, nil
+}
+
+// allTLSVersions lists all the TLS versions and is used by the code that validates
+// a uint16 value as a TLS version.
+var allTLSVersions = map[uint16]struct{}{
+	tls.VersionTLS10: {},
+	tls.VersionTLS11: {},
+	tls.VersionTLS12: {},
+	tls.VersionTLS13: {},
 }
 
 // isValidMinVersion checks that the input value is a valid tls minimum version
@@ -176,12 +185,12 @@ func getCert(options Options) ([]tls.Certificate, error) {
 		return nil, nil
 	}
 
-	cert, err := ioutil.ReadFile(options.CertFile)
+	cert, err := os.ReadFile(options.CertFile)
 	if err != nil {
 		return nil, err
 	}
 
-	prKeyBytes, err := ioutil.ReadFile(options.KeyFile)
+	prKeyBytes, err := os.ReadFile(options.KeyFile)
 	if err != nil {
 		return nil, err
 	}
