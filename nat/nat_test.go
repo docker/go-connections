@@ -703,3 +703,16 @@ func TestParseNetworkOptsSctp(t *testing.T) {
 		}
 	}
 }
+
+func TestStringer(t *testing.T) {
+	spec := "192.168.1.100:8080:6000/udp"
+	mappings, err := ParsePortSpec(spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range mappings {
+		if m.String() != spec {
+			t.Fail()
+		}
+	}
+}
