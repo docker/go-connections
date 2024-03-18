@@ -88,7 +88,10 @@ func (p Port) Int() int {
 
 // Range returns the start/end port numbers of a Port range as ints
 func (p Port) Range() (int, int, error) {
-	return ParsePortRangeToInt(p.Port())
+	// We don't need to check for an error because we're going to
+	// assume that any error would have been found, and reported, in NewPort()
+	start, end, _ := ParsePortRangeToInt(p.Port())
+	return start, end, nil
 }
 
 // SplitProtoPort splits a port in the format of proto/port
