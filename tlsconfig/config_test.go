@@ -72,8 +72,8 @@ func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unable to create temporary empty file")
 	}
-	defer os.RemoveAll(tempFile.Name())
-	tempFile.Close()
+	defer func() { _ = os.RemoveAll(tempFile.Name()) }()
+	_ = tempFile.Close()
 
 	for _, badFile := range []string{"not-a-file", tempFile.Name()} {
 		for i := 0; i < 3; i++ {
@@ -474,7 +474,7 @@ func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unable to create temporary empty file")
 	}
-	defer os.Remove(tempFile.Name())
+	defer func() { _ = os.Remove(tempFile.Name()) }()
 	_ = tempFile.Close()
 
 	for i := 0; i < 2; i++ {

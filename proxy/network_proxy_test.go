@@ -61,7 +61,7 @@ func (server *TCPEchoServer) Run() {
 				if _, err := io.Copy(client, client); err != nil {
 					server.testCtx.Logf("can't echo to the client: %v\n", err.Error())
 				}
-				client.Close()
+				_ = client.Close()
 			}(client)
 		}
 	}()
@@ -99,7 +99,7 @@ func testProxyAt(t *testing.T, proto string, proxy Proxy, addr string) {
 	if err != nil {
 		t.Fatalf("Can't connect to the proxy: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	_ = client.SetDeadline(time.Now().Add(10 * time.Second))
 	if _, err = client.Write(testBuf); err != nil {
 		t.Fatal(err)
@@ -201,7 +201,7 @@ func TestUDPWriteError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't connect to the proxy: %v", err)
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 	// Make sure the proxy doesn't stop when there is no actual backend:
 	_, _ = client.Write(testBuf)
 	_, _ = client.Write(testBuf)

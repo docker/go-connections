@@ -44,7 +44,7 @@ func TestNewUnixSocket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 	runTest(t, path, l, echoStr)
 }
 
@@ -53,11 +53,11 @@ func TestUnixSocketWithOpts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	socketFile.Close()
-	defer os.Remove(socketFile.Name())
+	_ = socketFile.Close()
+	defer func() { _ = os.Remove(socketFile.Name()) }()
 
 	l := createTestUnixSocket(t, socketFile.Name())
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	echoStr := "hello"
 	runTest(t, socketFile.Name(), l, echoStr)
