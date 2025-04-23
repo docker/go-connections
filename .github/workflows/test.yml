@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "1.20.x", "1.21.x"]
+        go: ["1.18.x", "oldstable", "stable"]
         platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "1.20.x", "1.21.x"]
+        go: ["1.18.x", "oldstable", "stable"]
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -64,7 +64,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.21.x"
+          go-version: "stable"
           cache: false
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
