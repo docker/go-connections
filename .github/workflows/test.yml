@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         go: ["1.18.x", "1.20.x", "1.21.x"]
-        platform: [ubuntu-20.04]
+        platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go ${{ matrix.go }}
@@ -58,7 +58,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-20.04, windows-latest, macos-latest]
+        platform: [ubuntu-24.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
