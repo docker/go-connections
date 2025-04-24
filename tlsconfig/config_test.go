@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"os"
 	"reflect"
 	"runtime"
@@ -523,39 +524,18 @@ func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
 	}
 }
 
-// The certificate is set if the client cert and encrypted client key are
-// provided and valid and passphrase can decrypt the key
-func TestConfigClientTLSValidClientCertAndEncryptedKey(t *testing.T) {
+func TestConfigClientTLSEncryptedKey(t *testing.T) {
 	key, cert := getCertAndEncryptedKey()
 
 	tlsConfig, err := Client(Options{
-		CertFile:   cert,
-		KeyFile:    key,
-		Passphrase: "FooBar123",
+		CertFile: cert,
+		KeyFile:  key,
 	})
-
-	if err != nil || tlsConfig == nil {
-		t.Fatal("Unable to configure client TLS", err)
+	if !errors.Is(err, errEncryptedKeyDeprecated) {
+		t.Errorf("Expected %v but got %v", errEncryptedKeyDeprecated, err)
 	}
-
-	if len(tlsConfig.Certificates) != 1 {
-		t.Fatal("Unexpected client certificates")
-	}
-}
-
-// The certificate is not set if the provided passphrase cannot decrypt
-// the encrypted key.
-func TestConfigClientTLSNotSetWithInvalidPassphrase(t *testing.T) {
-	key, cert := getCertAndEncryptedKey()
-
-	tlsConfig, err := Client(Options{
-		CertFile:   cert,
-		KeyFile:    key,
-		Passphrase: "InvalidPassphrase",
-	})
-
-	if !IsErrEncryptedKey(err) || tlsConfig != nil {
-		t.Fatal("Expected failure due to incorrect passphrase.")
+	if tlsConfig != nil {
+		t.Errorf("Expected nil but got %v", tlsConfig)
 	}
 }
 

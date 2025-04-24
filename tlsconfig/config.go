@@ -34,14 +34,6 @@ type Options struct {
 	// the system pool will be used.
 	ExclusiveRootPools bool
 	MinVersion         uint16
-	// If Passphrase is set, it will be used to decrypt a TLS private key
-	// if the key is encrypted.
-	//
-	// Deprecated: Use of encrypted TLS private keys has been deprecated, and
-	// will be removed in a future release. Golang has deprecated support for
-	// legacy PEM encryption (as specified in RFC 1423), as it is insecure by
-	// design (see https://go-review.googlesource.com/c/go/+/264159).
-	Passphrase string
 }
 
 // Extra (server-side) accepted CBC cipher suites - will phase out in the future
@@ -144,34 +136,32 @@ func adjustMinVersion(options Options, config *tls.Config) error {
 	return nil
 }
 
-// IsErrEncryptedKey returns true if the 'err' is an error of incorrect
-// password when trying to decrypt a TLS private key.
+// errEncryptedKeyDeprecated is produced when we encounter an encrypted
+// (password-protected) key. From https://go-review.googlesource.com/c/go/+/264159;
 //
-// Deprecated: Use of encrypted TLS private keys has been deprecated, and
-// will be removed in a future release. Golang has deprecated support for
-// legacy PEM encryption (as specified in RFC 1423), as it is insecure by
-// design (see https://go-review.googlesource.com/c/go/+/264159).
-func IsErrEncryptedKey(err error) bool {
-	return errors.Is(err, x509.IncorrectPasswordError)
-}
+// > Legacy PEM encryption as specified in RFC 1423 is insecure by design. Since
+// > it does not authenticate the ciphertext, it is vulnerable to padding oracle
+// > attacks that can let an attacker recover the plaintext
+// >
+// > It's unfortunate that we don't implement PKCS#8 encryption so we can't
+// > recommend an alternative but PEM encryption is so broken that it's worth
+// > deprecating outright.
+//
+// Also see https://docs.docker.com/go/deprecated/
+var errEncryptedKeyDeprecated = errors.New("private key is encrypted; encrypted private keys are obsolete, and not supported")
 
 // getPrivateKey returns the private key in 'keyBytes', in PEM-encoded format.
-// If the private key is encrypted, 'passphrase' is used to decrypted the
-// private key.
-func getPrivateKey(keyBytes []byte, passphrase string) ([]byte, error) {
+// It returns an error if the file could not be decoded or was protected by
+// a passphrase.
+func getPrivateKey(keyBytes []byte) ([]byte, error) {
 	// this section makes some small changes to code from notary/tuf/utils/x509.go
 	pemBlock, _ := pem.Decode(keyBytes)
 	if pemBlock == nil {
 		return nil, fmt.Errorf("no valid private key found")
 	}
 
-	var err error
 	if x509.IsEncryptedPEMBlock(pemBlock) { //nolint:staticcheck // Ignore SA1019 (IsEncryptedPEMBlock is deprecated)
-		keyBytes, err = x509.DecryptPEMBlock(pemBlock, []byte(passphrase)) //nolint:staticcheck // Ignore SA1019 (DecryptPEMBlock is deprecated)
-		if err != nil {
-			return nil, fmt.Errorf("private key is encrypted, but could not decrypt it: %w", err)
-		}
-		keyBytes = pem.EncodeToMemory(&pem.Block{Type: pemBlock.Type, Bytes: keyBytes})
+		return nil, errEncryptedKeyDeprecated
 	}
 
 	return keyBytes, nil
@@ -195,7 +185,7 @@ func getCert(options Options) ([]tls.Certificate, error) {
 		return nil, err
 	}
 
-	prKeyBytes, err = getPrivateKey(prKeyBytes, options.Passphrase)
+	prKeyBytes, err = getPrivateKey(prKeyBytes)
 	if err != nil {
 		return nil, err
 	}
