@@ -1,10 +1,21 @@
 name: CI
 
+# Default to 'contents: read', which grants actions to read commits.
+#
+# If any permission is set, any permission not included in the list is
+# implicitly set to "none".
+#
+# see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
   pull_request:
-    branches:
-      - master
 
 jobs:
 
@@ -14,12 +25,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "1.20.x", "1.21.x"]
-        platform: [ubuntu-20.04]
+        go: ["1.18.x", "oldstable", "stable"]
+        platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
     - name: Install Go ${{ matrix.go }}
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go }}
     - name: Setup IPv6
@@ -37,12 +48,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "1.20.x", "1.21.x"]
+        go: ["1.18.x", "oldstable", "stable"]
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Install Go ${{ matrix.go }}
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - name: Checkout code
@@ -58,17 +69,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-20.04, windows-latest, macos-latest]
+        platform: [ubuntu-24.04, windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.21.x"
+          go-version: "stable"
           cache: false
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v7
         with:
-          # must be specified without patch version
-          version: v1.55
           args: --timeout=5m
