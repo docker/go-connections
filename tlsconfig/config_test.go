@@ -42,8 +42,8 @@ rqXRfboQnoZsG4q5WTP468SQvvG5
 	rsaPrivateKeyFile             = "fixtures/key.pem"
 	certificateFile               = "fixtures/cert.pem"
 	multiCertificateFile          = "fixtures/multi.pem"
-	rsaEncryptedPrivateKeyFile    = "fixtures/encrypted_key.pem"
-	certificateOfEncryptedKeyFile = "fixtures/cert_of_encrypted_key.pem"
+	rsaEncryptedPrivateKeyFile    = "fixtures/encrypted_key.pem"         // TODO add code to regenerate in fixtures/generate.go
+	certificateOfEncryptedKeyFile = "fixtures/cert_of_encrypted_key.pem" // TODO add code to regenerate in fixtures/generate.go
 )
 
 // returns the name of a pre-generated, multiple-certificate CA file
