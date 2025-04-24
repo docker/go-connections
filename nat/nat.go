@@ -2,6 +2,7 @@
 package nat
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -48,7 +49,7 @@ func ParsePort(rawPort string) (int, error) {
 	}
 	port, err := strconv.ParseUint(rawPort, 10, 16)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("invalid port '%s': %w", rawPort, errors.Unwrap(err))
 	}
 	return int(port), nil
 }
@@ -91,29 +92,31 @@ func (p Port) Range() (int, int, error) {
 	return ParsePortRangeToInt(p.Port())
 }
 
-// SplitProtoPort splits a port in the format of proto/port
-func SplitProtoPort(rawPort string) (string, string) {
-	parts := strings.Split(rawPort, "/")
-	l := len(parts)
-	if len(rawPort) == 0 || l == 0 || len(parts[0]) == 0 {
+// SplitProtoPort splits a port(range) and protocol, formatted as "<portnum>/[<proto>]"
+// "<startport-endport>/[<proto>]". It returns an empty string for both if
+// no port(range) is provided. If a port(range) is provided, but no protocol,
+// the default ("tcp") protocol is returned.
+//
+// SplitProtoPort does not validate or normalize the returned values.
+func SplitProtoPort(rawPort string) (proto string, port string) {
+	port, proto, _ = strings.Cut(rawPort, "/")
+	if port == "" {
 		return "", ""
 	}
-	if l == 1 {
-		return "tcp", rawPort
+	if proto == "" {
+		proto = "tcp"
 	}
-	if len(parts[1]) == 0 {
-		return "tcp", parts[0]
-	}
-	return parts[1], parts[0]
+	return proto, port
 }
 
-func validateProto(proto string) bool {
-	for _, availableProto := range []string{"tcp", "udp", "sctp"} {
-		if availableProto == proto {
-			return true
-		}
+func validateProto(proto string) error {
+	switch proto {
+	case "tcp", "udp", "sctp":
+		// All good
+		return nil
+	default:
+		return errors.New("invalid proto: " + proto)
 	}
-	return false
 }
 
 // ParsePortSpecs receives port specs in the format of ip:public:private/proto and parses
@@ -169,9 +172,12 @@ func splitParts(rawport string) (string, string, string) {
 
 // ParsePortSpec parses a port specification string into a slice of PortMappings
 func ParsePortSpec(rawPort string) ([]PortMapping, error) {
-	var proto string
 	ip, hostPort, containerPort := splitParts(rawPort)
-	proto, containerPort = SplitProtoPort(containerPort)
+	proto, containerPort := SplitProtoPort(containerPort)
+	proto = strings.ToLower(proto)
+	if err := validateProto(proto); err != nil {
+		return nil, err
+	}
 
 	if ip != "" && ip[0] == '[' {
 		// Strip [] from IPV6 addresses
@@ -210,10 +216,6 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 		}
 	}
 
-	if !validateProto(strings.ToLower(proto)) {
-		return nil, fmt.Errorf("invalid proto: %s", proto)
-	}
-
 	ports := []PortMapping{}
 	for i := uint64(0); i <= (endPort - startPort); i++ {
 		containerPort = strconv.FormatUint(startPort+i, 10)
@@ -223,18 +225,17 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 		// Set hostPort to a range only if there is a single container port
 		// and a dynamic host port.
 		if startPort == endPort && startHostPort != endHostPort {
-			hostPort = fmt.Sprintf("%s-%s", hostPort, strconv.FormatUint(endHostPort, 10))
+			hostPort = hostPort + "-" + strconv.FormatUint(endHostPort, 10)
 		}
-		port, err := NewPort(strings.ToLower(proto), containerPort)
+		port, err := NewPort(proto, containerPort)
 		if err != nil {
 			return nil, err
 		}
 
-		binding := PortBinding{
-			HostIP:   ip,
-			HostPort: hostPort,
-		}
-		ports = append(ports, PortMapping{Port: port, Binding: binding})
+		ports = append(ports, PortMapping{
+			Port:    port,
+			Binding: PortBinding{HostIP: ip, HostPort: hostPort},
+		})
 	}
 	return ports, nil
 }
