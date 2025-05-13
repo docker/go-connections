@@ -83,13 +83,13 @@ func ClientDefault(ops ...func(*tls.Config)) *tls.Config {
 func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 	// If we should verify the server, we need to load a trusted ca
 	var (
-		certPool *x509.CertPool
-		err      error
+		pool *x509.CertPool
+		err  error
 	)
 	if exclusivePool {
-		certPool = x509.NewCertPool()
+		pool = x509.NewCertPool()
 	} else {
-		certPool, err = SystemCertPool()
+		pool, err = SystemCertPool()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
@@ -98,10 +98,10 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not read CA certificate %q: %v", caFile, err)
 	}
-	if !certPool.AppendCertsFromPEM(pemData) {
+	if !pool.AppendCertsFromPEM(pemData) {
 		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", caFile)
 	}
-	return certPool, nil
+	return pool, nil
 }
 
 // allTLSVersions lists all the TLS versions and is used by the code that validates
