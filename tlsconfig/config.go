@@ -36,40 +36,35 @@ type Options struct {
 	MinVersion         uint16
 }
 
-// Extra (server-side) accepted CBC cipher suites - will phase out in the future
-var acceptedCBCCiphers = []uint16{
-	tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-	tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-	tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-}
-
 // DefaultServerAcceptedCiphers should be uses by code which already has a crypto/tls
 // options struct but wants to use a commonly accepted set of TLS cipher suites, with
 // known weak algorithms removed.
-var DefaultServerAcceptedCiphers = append(clientCipherSuites, acceptedCBCCiphers...)
+var DefaultServerAcceptedCiphers = defaultCipherSuites
+
+// defaultCipherSuites is shared by both client and server as the default set.
+var defaultCipherSuites = []uint16{
+	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+}
 
 // ServerDefault returns a secure-enough TLS configuration for the server TLS configuration.
 func ServerDefault(ops ...func(*tls.Config)) *tls.Config {
-	tlsConfig := &tls.Config{
-		// Avoid fallback by default to SSL protocols < TLS1.2
-		MinVersion:   tls.VersionTLS12,
-		CipherSuites: DefaultServerAcceptedCiphers,
-	}
-
-	for _, op := range ops {
-		op(tlsConfig)
-	}
-
-	return tlsConfig
+	return defaultConfig(ops...)
 }
 
 // ClientDefault returns a secure-enough TLS configuration for the client TLS configuration.
 func ClientDefault(ops ...func(*tls.Config)) *tls.Config {
+	return defaultConfig(ops...)
+}
+
+// defaultConfig is the default config used by both client and server TLS configuration.
+func defaultConfig(ops ...func(*tls.Config)) *tls.Config {
 	tlsConfig := &tls.Config{
-		// Prefer TLS1.2 as the client minimum
+		// Avoid fallback by default to SSL protocols < TLS1.2
 		MinVersion:   tls.VersionTLS12,
-		CipherSuites: clientCipherSuites,
+		CipherSuites: defaultCipherSuites,
 	}
 
 	for _, op := range ops {
@@ -199,7 +194,7 @@ func getCert(options Options) ([]tls.Certificate, error) {
 
 // Client returns a TLS configuration meant to be used by a client.
 func Client(options Options) (*tls.Config, error) {
-	tlsConfig := ClientDefault()
+	tlsConfig := defaultConfig()
 	tlsConfig.InsecureSkipVerify = options.InsecureSkipVerify
 	if !options.InsecureSkipVerify && options.CAFile != "" {
 		CAs, err := certPool(options.CAFile, options.ExclusiveRootPools)
@@ -224,7 +219,7 @@ func Client(options Options) (*tls.Config, error) {
 
 // Server returns a TLS configuration meant to be used by a server.
 func Server(options Options) (*tls.Config, error) {
-	tlsConfig := ServerDefault()
+	tlsConfig := defaultConfig()
 	tlsConfig.ClientAuth = options.ClientAuth
 	tlsCert, err := tls.LoadX509KeyPair(options.CertFile, options.KeyFile)
 	if err != nil {
