@@ -53,9 +53,8 @@ var DefaultServerAcceptedCiphers = append(clientCipherSuites, acceptedCBCCiphers
 func ServerDefault(ops ...func(*tls.Config)) *tls.Config {
 	tlsConfig := &tls.Config{
 		// Avoid fallback by default to SSL protocols < TLS1.2
-		MinVersion:               tls.VersionTLS12,
-		PreferServerCipherSuites: true,
-		CipherSuites:             DefaultServerAcceptedCiphers,
+		MinVersion:   tls.VersionTLS12,
+		CipherSuites: DefaultServerAcceptedCiphers,
 	}
 
 	for _, op := range ops {

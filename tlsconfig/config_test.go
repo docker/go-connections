@@ -127,9 +127,6 @@ func TestConfigServerTLSServerCertsOnly(t *testing.T) {
 	if !reflect.DeepEqual(tlsConfig.CipherSuites, DefaultServerAcceptedCiphers) {
 		t.Fatal("Unexpected server cipher suites")
 	}
-	if !tlsConfig.PreferServerCipherSuites { //nolint:staticcheck // Ignore SA1019: tlsConfig.PreferServerCipherSuites has been deprecated since Go 1.18: PreferServerCipherSuites is ignored.
-		t.Fatal("Expected server to prefer cipher suites")
-	}
 	if tlsConfig.MinVersion != tls.VersionTLS12 {
 		t.Fatal("Unexpected server TLS version")
 	}
