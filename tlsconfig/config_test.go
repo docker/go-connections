@@ -395,7 +395,7 @@ func TestConfigClientTLSNoVerify(t *testing.T) {
 		t.Fatal("Should not have set Root CAs", err)
 	}
 
-	if !reflect.DeepEqual(tlsConfig.CipherSuites, clientCipherSuites) {
+	if !reflect.DeepEqual(tlsConfig.CipherSuites, defaultCipherSuites) {
 		t.Fatal("Unexpected client cipher suites")
 	}
 	if tlsConfig.MinVersion != tls.VersionTLS12 {
@@ -420,7 +420,7 @@ func TestConfigClientTLSNoRoot(t *testing.T) {
 		t.Fatal("Should not have set Root CAs", err)
 	}
 
-	if !reflect.DeepEqual(tlsConfig.CipherSuites, clientCipherSuites) {
+	if !reflect.DeepEqual(tlsConfig.CipherSuites, defaultCipherSuites) {
 		t.Fatal("Unexpected client cipher suites")
 	}
 	if tlsConfig.MinVersion != tls.VersionTLS12 {
