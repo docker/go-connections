@@ -198,42 +198,39 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 		return nil, errors.New("invalid containerPort: " + containerPort)
 	}
 
-	var startHostPort, endHostPort uint64 = 0, 0
+	var startHostPort, endHostPort uint64
 	if hostPort != "" {
 		startHostPort, endHostPort, err = ParsePortRange(hostPort)
 		if err != nil {
 			return nil, errors.New("invalid hostPort: " + hostPort)
 		}
-	}
-
-	if hostPort != "" && (endPort-startPort) != (endHostPort-startHostPort) {
-		// Allow host port range iff containerPort is not a range.
-		// In this case, use the host port range as the dynamic
-		// host port range to allocate into.
-		if endPort != startPort {
-			return nil, fmt.Errorf("invalid ranges specified for container and host Ports: %s and %s", containerPort, hostPort)
+		if (endPort - startPort) != (endHostPort - startHostPort) {
+			// Allow host port range iff containerPort is not a range.
+			// In this case, use the host port range as the dynamic
+			// host port range to allocate into.
+			if endPort != startPort {
+				return nil, fmt.Errorf("invalid ranges specified for container and host Ports: %s and %s", containerPort, hostPort)
+			}
 		}
 	}
 
-	ports := []PortMapping{}
-	for i := uint64(0); i <= (endPort - startPort); i++ {
-		containerPort = strconv.FormatUint(startPort+i, 10)
+	count := endPort - startPort + 1
+	ports := make([]PortMapping, 0, count)
+
+	for i := uint64(0); i < count; i++ {
+		cPort := Port(strconv.FormatUint(startPort+i, 10) + "/" + proto)
+		hPort := ""
 		if hostPort != "" {
-			hostPort = strconv.FormatUint(startHostPort+i, 10)
+			hPort = strconv.FormatUint(startHostPort+i, 10)
+			// Set hostPort to a range only if there is a single container port
+			// and a dynamic host port.
+			if count == 1 && startHostPort != endHostPort {
+				hPort += "-" + strconv.FormatUint(endHostPort, 10)
+			}
 		}
-		// Set hostPort to a range only if there is a single container port
-		// and a dynamic host port.
-		if startPort == endPort && startHostPort != endHostPort {
-			hostPort = hostPort + "-" + strconv.FormatUint(endHostPort, 10)
-		}
-		port, err := NewPort(proto, containerPort)
-		if err != nil {
-			return nil, err
-		}
-
 		ports = append(ports, PortMapping{
-			Port:    port,
-			Binding: PortBinding{HostIP: ip, HostPort: hostPort},
+			Port:    cPort,
+			Binding: PortBinding{HostIP: ip, HostPort: hPort},
 		})
 	}
 	return ports, nil
