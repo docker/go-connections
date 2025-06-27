@@ -27,6 +27,14 @@ var ErrProtocolNotAvailable = errors.New("protocol not available")
 // make sure you do it _after_ any subsequent calls to ConfigureTransport is made against the same
 // [http.Transport].
 func ConfigureTransport(tr *http.Transport, proto, addr string) error {
+	if tr.MaxIdleConns == 0 {
+		// prevent long-lived processes from leaking connections
+		// due to idle connections not being released.
+		//
+		// TODO: see if we can also address this from the server side; see: https://github.com/moby/moby/issues/45539
+		tr.MaxIdleConns = 6
+		tr.IdleConnTimeout = 30 * time.Second
+	}
 	switch proto {
 	case "unix":
 		return configureUnixTransport(tr, proto, addr)
