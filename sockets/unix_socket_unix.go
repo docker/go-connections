@@ -4,8 +4,34 @@ package sockets
 
 import (
 	"net"
+	"os"
 	"syscall"
 )
+
+// WithChown modifies the socket file's uid and gid
+func WithChown(uid, gid int) SockOption {
+	return func(path string) error {
+		if err := os.Chown(path, uid, gid); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// WithChmod modifies socket file's access mode.
+func WithChmod(mask os.FileMode) SockOption {
+	return func(path string) error {
+		if err := os.Chmod(path, mask); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// NewUnixSocket creates a unix socket with the specified path and group.
+func NewUnixSocket(path string, gid int) (net.Listener, error) {
+	return NewUnixSocketWithOpts(path, WithChown(0, gid), WithChmod(0o660))
+}
 
 func listenUnix(path string) (net.Listener, error) {
 	// net.Listen does not allow for permissions to be set. As a result, when

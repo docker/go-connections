@@ -1,14 +1,24 @@
 package sockets
 
 import (
-	"net"
+	"os"
 	"testing"
 )
 
-func createTestUnixSocket(t *testing.T, path string) (listener net.Listener) {
-	l, err := NewUnixSocketWithOpts(path)
+func TestUnixSocketWithOpts(t *testing.T) {
+	socketFile, err := os.CreateTemp("", "test*.sock")
 	if err != nil {
 		t.Fatal(err)
 	}
-	return l
+	_ = socketFile.Close()
+	defer func() { _ = os.Remove(socketFile.Name()) }()
+
+	l, err := NewUnixSocketWithOpts(socketFile.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+
+	echoStr := "hello"
+	runTest(t, socketFile.Name(), l, echoStr)
 }
