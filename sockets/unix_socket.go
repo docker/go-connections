@@ -55,26 +55,6 @@ import (
 // SockOption sets up socket file's creating option
 type SockOption func(string) error
 
-// WithChown modifies the socket file's uid and gid
-func WithChown(uid, gid int) SockOption {
-	return func(path string) error {
-		if err := os.Chown(path, uid, gid); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// WithChmod modifies socket file's access mode.
-func WithChmod(mask os.FileMode) SockOption {
-	return func(path string) error {
-		if err := os.Chmod(path, mask); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
 // NewUnixSocketWithOpts creates a unix socket with the specified options.
 // By default, socket permissions are 0000 (i.e.: no access for anyone); pass
 // WithChmod() and WithChown() to set the desired ownership and permissions.
@@ -101,9 +81,4 @@ func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error
 	}
 
 	return l, nil
-}
-
-// NewUnixSocket creates a unix socket with the specified path and group.
-func NewUnixSocket(path string, gid int) (net.Listener, error) {
-	return NewUnixSocketWithOpts(path, WithChown(0, gid), WithChmod(0o660))
 }
