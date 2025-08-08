@@ -1,6 +1,10 @@
 package sockets
 
-import "testing"
+import (
+	"errors"
+	"net"
+	"testing"
+)
 
 func TestInmemSocket(t *testing.T) {
 	l := NewInmemSocket("test", 0)
@@ -33,7 +37,7 @@ func TestInmemSocket(t *testing.T) {
 
 	_ = l.Close()
 	_, err = l.Dial("test", "test")
-	if err != errClosed {
-		t.Fatalf("expected `errClosed` error, got %v", err)
+	if !errors.Is(err, net.ErrClosed) {
+		t.Fatalf(`expected "net.ErrClosed" error, got %[1]v (%[1]T)`, err)
 	}
 }

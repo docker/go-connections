@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"encoding/binary"
+	"errors"
 	"net"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -115,10 +115,9 @@ func (proxy *UDPProxy) Run() {
 	for {
 		read, from, err := proxy.listener.ReadFromUDP(readBuf)
 		if err != nil {
-			// NOTE: Apparently ReadFrom doesn't return
-			// ECONNREFUSED like Read do (see comment in
-			// UDPProxy.replyLoop)
-			if !isClosedError(err) {
+			// NOTE: Apparently ReadFrom doesn't return ECONNREFUSED like
+			// Read does (see comment in [UDPProxy.replyLoop]).
+			if !errors.Is(err, net.ErrClosed) {
 				proxy.Logger.Printf("Stopping proxy on udp/%v for udp/%v (%s)", proxy.frontendAddr, proxy.backendAddr, err)
 			}
 			break
@@ -164,13 +163,3 @@ func (proxy *UDPProxy) FrontendAddr() net.Addr { return proxy.frontendAddr }
 
 // BackendAddr returns the proxied UDP address.
 func (proxy *UDPProxy) BackendAddr() net.Addr { return proxy.backendAddr }
-
-func isClosedError(err error) bool {
-	/* This comparison is ugly, but unfortunately, net.go doesn't export errClosing.
-	 * See:
-	 * http://golang.org/src/pkg/net/net.go
-	 * https://code.google.com/p/go/issues/detail?id=4337
-	 * https://groups.google.com/forum/#!msg/golang-nuts/0_aaCvBmOcM/SptmDyX1XJMJ
-	 */
-	return strings.HasSuffix(err.Error(), "use of closed network connection")
-}
