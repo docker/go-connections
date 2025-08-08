@@ -42,14 +42,6 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 	return nil
 }
 
-// DialPipe connects to a Windows named pipe. It is not supported on
-// non-Windows platforms.
-//
-// Deprecated: use [github.com/Microsoft/go-winio.DialPipe] or [github.com/Microsoft/go-winio.DialPipeContext].
-func DialPipe(addr string, timeout time.Duration) (net.Conn, error) {
-	return dialPipe(addr, timeout)
-}
-
 func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	if len(addr) > maxUnixSocketPathSize {
 		return fmt.Errorf("unix socket path %q is too long", addr)
