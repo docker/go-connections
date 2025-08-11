@@ -186,14 +186,14 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
 	}
 
-	startPort, endPort, err := ParsePortRange(containerPort)
+	startPort, endPort, err := parsePortRange(containerPort)
 	if err != nil {
 		return nil, errors.New("invalid containerPort: " + containerPort)
 	}
 
-	var startHostPort, endHostPort uint64
+	var startHostPort, endHostPort int
 	if hostPort != "" {
-		startHostPort, endHostPort, err = ParsePortRange(hostPort)
+		startHostPort, endHostPort, err = parsePortRange(hostPort)
 		if err != nil {
 			return nil, errors.New("invalid hostPort: " + hostPort)
 		}
@@ -210,19 +210,18 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	count := endPort - startPort + 1
 	ports := make([]PortMapping, 0, count)
 
-	for i := uint64(0); i < count; i++ {
-		cPort := Port(strconv.FormatUint(startPort+i, 10) + "/" + proto)
+	for i := 0; i < count; i++ {
 		hPort := ""
 		if hostPort != "" {
-			hPort = strconv.FormatUint(startHostPort+i, 10)
+			hPort = strconv.Itoa(startHostPort + i)
 			// Set hostPort to a range only if there is a single container port
 			// and a dynamic host port.
 			if count == 1 && startHostPort != endHostPort {
-				hPort += "-" + strconv.FormatUint(endHostPort, 10)
+				hPort += "-" + strconv.Itoa(endHostPort)
 			}
 		}
 		ports = append(ports, PortMapping{
-			Port:    cPort,
+			Port:    Port(strconv.Itoa(startPort+i) + "/" + proto),
 			Binding: PortBinding{HostIP: ip, HostPort: hPort},
 		})
 	}
