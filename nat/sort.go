@@ -55,7 +55,7 @@ func (s portMapSorter) Less(i, j int) bool {
 
 // SortPortMap sorts the list of ports and their respected mapping. The ports
 // will explicit HostPort will be placed first.
-func SortPortMap(ports []Port, bindings PortMap) {
+func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 	s := portMapSorter{}
 	for _, p := range ports {
 		if binding, ok := bindings[p]; ok && len(binding) > 0 {
