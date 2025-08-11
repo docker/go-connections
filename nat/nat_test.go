@@ -675,11 +675,11 @@ func TestParseNetworkOptsNegativePorts(t *testing.T) {
 		t.Fail()
 	}
 	if len(ports) != 0 {
-		t.Logf("Expected nil got %d", len(ports))
+		t.Logf("Expected 0 got %d: %#v", len(ports), ports)
 		t.Fail()
 	}
 	if len(bindings) != 0 {
-		t.Logf("Expected 0 got %d", len(bindings))
+		t.Logf("Expected 0 got %d: %#v", len(bindings), bindings)
 		t.Fail()
 	}
 }
@@ -690,11 +690,11 @@ func TestParseNetworkOptsUdp(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(ports) != 1 {
-		t.Logf("Expected 1 got %d", len(ports))
+		t.Logf("Expected 1 got %d: %#v", len(ports), ports)
 		t.FailNow()
 	}
 	if len(bindings) != 1 {
-		t.Logf("Expected 1 got %d", len(bindings))
+		t.Logf("Expected 1 got %d: %#v", len(bindings), bindings)
 		t.FailNow()
 	}
 	for k := range ports {
@@ -732,11 +732,11 @@ func TestParseNetworkOptsSctp(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(ports) != 1 {
-		t.Logf("Expected 1 got %d", len(ports))
+		t.Logf("Expected 1 got %d: %#v", len(ports), ports)
 		t.FailNow()
 	}
 	if len(bindings) != 1 {
-		t.Logf("Expected 1 got %d", len(bindings))
+		t.Logf("Expected 1 got %d: %#v", len(bindings), bindings)
 		t.FailNow()
 	}
 	for k := range ports {
