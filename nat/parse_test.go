@@ -50,52 +50,52 @@ func TestParsePortRange(t *testing.T) {
 		{
 			doc:    "non-numeric port",
 			input:  "asdf",
-			expErr: `strconv.ParseUint: parsing "asdf": invalid syntax`,
+			expErr: `invalid start port 'asdf': invalid syntax`,
 		},
 		{
 			doc:    "reversed range",
 			input:  "9000-8000",
-			expErr: `invalid range specified for port: 9000-8000`,
+			expErr: `invalid port range: 9000-8000`,
 		},
 		{
 			doc:    "range missing end",
 			input:  "8000-",
-			expErr: `strconv.ParseUint: parsing "": invalid syntax`,
+			expErr: `invalid end port '': value is empty`,
 		},
 		{
 			doc:    "range missing start",
 			input:  "-9000",
-			expErr: `strconv.ParseUint: parsing "": invalid syntax`,
+			expErr: `invalid start port '': value is empty`,
 		},
 		{
 			doc:    "invalid range end",
 			input:  "8000-a",
-			expErr: `strconv.ParseUint: parsing "a": invalid syntax`,
+			expErr: `invalid end port 'a': invalid syntax`,
 		},
 		{
 			doc:    "invalid range end port",
 			input:  "8000-9000a",
-			expErr: `strconv.ParseUint: parsing "9000a": invalid syntax`,
+			expErr: `invalid end port '9000a': invalid syntax`,
 		},
 		{
 			doc:    "range range start",
 			input:  "a-9000",
-			expErr: `strconv.ParseUint: parsing "a": invalid syntax`,
+			expErr: `invalid start port 'a': invalid syntax`,
 		},
 		{
 			doc:    "range range start port",
 			input:  "8000a-9000",
-			expErr: `strconv.ParseUint: parsing "8000a": invalid syntax`,
+			expErr: `invalid start port '8000a': invalid syntax`,
 		},
 		{
 			doc:    "range with trailing hyphen",
 			input:  "-8000-",
-			expErr: `strconv.ParseUint: parsing "": invalid syntax`,
+			expErr: `invalid start port '': value is empty`,
 		},
 		{
 			doc:    "range without ports",
 			input:  "-",
-			expErr: `strconv.ParseUint: parsing "": invalid syntax`,
+			expErr: `invalid start port '': value is empty`,
 		},
 	}
 

@@ -2,34 +2,40 @@ package nat
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
-// ParsePortRange parses and validates the specified string as a port-range (8000-9000)
-func ParsePortRange(ports string) (uint64, uint64, error) {
+// ParsePortRange parses and validates the specified string as a port range (e.g., "8000-9000").
+func ParsePortRange(ports string) (startPort, endPort uint64, _ error) {
+	start, end, err := parsePortRange(ports)
+	return uint64(start), uint64(end), err
+}
+
+// parsePortRange parses and validates the specified string as a port range (e.g., "8000-9000").
+func parsePortRange(ports string) (startPort, endPort int, _ error) {
 	if ports == "" {
 		return 0, 0, errors.New("empty string specified for ports")
 	}
-	if !strings.Contains(ports, "-") {
-		start, err := strconv.ParseUint(ports, 10, 16)
-		end := start
-		return start, end, err
+	start, end, ok := strings.Cut(ports, "-")
+
+	startPort, err := parsePortNumber(start)
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid start port '%s': %w", start, err)
+	}
+	if !ok || start == end {
+		return startPort, startPort, nil
 	}
 
-	parts := strings.Split(ports, "-")
-	start, err := strconv.ParseUint(parts[0], 10, 16)
+	endPort, err = parsePortNumber(end)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("invalid end port '%s': %w", end, err)
 	}
-	end, err := strconv.ParseUint(parts[1], 10, 16)
-	if err != nil {
-		return 0, 0, err
+	if endPort < startPort {
+		return 0, 0, errors.New("invalid port range: " + ports)
 	}
-	if end < start {
-		return 0, 0, errors.New("invalid range specified for port: " + ports)
-	}
-	return start, end, nil
+	return startPort, endPort, nil
 }
 
 // parsePortNumber parses rawPort into an int, unwrapping strconv errors

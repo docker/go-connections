@@ -55,15 +55,12 @@ func ParsePort(rawPort string) (int, error) {
 }
 
 // ParsePortRangeToInt parses the port range string and returns start/end ints
-func ParsePortRangeToInt(rawPort string) (int, int, error) {
+func ParsePortRangeToInt(rawPort string) (startPort, endPort int, _ error) {
 	if rawPort == "" {
+		// TODO(thaJeztah): consider making this an error; this was kept to keep existing behavior.
 		return 0, 0, nil
 	}
-	start, end, err := ParsePortRange(rawPort)
-	if err != nil {
-		return 0, 0, err
-	}
-	return int(start), int(end), nil
+	return parsePortRange(rawPort)
 }
 
 // Proto returns the protocol of a Port
