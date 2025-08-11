@@ -27,19 +27,15 @@ type PortSet map[Port]struct{}
 type Port string
 
 // NewPort creates a new instance of a Port given a protocol and port number or port range
-func NewPort(proto, port string) (Port, error) {
-	// Check for parsing issues on "port" now so we can avoid having
-	// to check it later on.
-
-	portStartInt, portEndInt, err := ParsePortRangeToInt(port)
+func NewPort(proto, portOrRange string) (Port, error) {
+	start, end, err := parsePortRange(portOrRange)
 	if err != nil {
 		return "", err
 	}
-
-	if portStartInt == portEndInt {
-		return Port(fmt.Sprintf("%d/%s", portStartInt, proto)), nil
+	if start == end {
+		return Port(fmt.Sprintf("%d/%s", start, proto)), nil
 	}
-	return Port(fmt.Sprintf("%d-%d/%s", portStartInt, portEndInt, proto)), nil
+	return Port(fmt.Sprintf("%d-%d/%s", start, end, proto)), nil
 }
 
 // ParsePort parses the port number string and returns an int
