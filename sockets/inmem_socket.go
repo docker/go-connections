@@ -5,32 +5,42 @@ import (
 	"sync"
 )
 
-// InmemSocket implements net.Listener using in-memory only connections.
-type InmemSocket struct {
-	chConn  chan net.Conn
-	chClose chan struct{}
-	addr    string
-	mu      sync.Mutex
-}
-
 // dummyAddr is used to satisfy net.Addr for the in-mem socket
 // it is just stored as a string and returns the string for all calls
 type dummyAddr string
 
-// NewInmemSocket creates an in-memory only net.Listener
-// The addr argument can be any string, but is used to satisfy the `Addr()` part
-// of the net.Listener interface
+// Network returns the addr string, satisfies net.Addr
+func (a dummyAddr) Network() string {
+	return string(a)
+}
+
+// String returns the string form
+func (a dummyAddr) String() string {
+	return string(a)
+}
+
+// InmemSocket implements [net.Listener] using in-memory only connections.
+type InmemSocket struct {
+	chConn  chan net.Conn
+	chClose chan struct{}
+	addr    dummyAddr
+	mu      sync.Mutex
+}
+
+// NewInmemSocket creates an in-memory only [net.Listener]. The addr argument
+// can be any string, but is used to satisfy the [net.Listener.Addr] part
+// of the [net.Listener] interface
 func NewInmemSocket(addr string, bufSize int) *InmemSocket {
 	return &InmemSocket{
 		chConn:  make(chan net.Conn, bufSize),
 		chClose: make(chan struct{}),
-		addr:    addr,
+		addr:    dummyAddr(addr),
 	}
 }
 
 // Addr returns the socket's addr string to satisfy net.Listener
 func (s *InmemSocket) Addr() net.Addr {
-	return dummyAddr(s.addr)
+	return s.addr
 }
 
 // Accept implements the Accept method in the Listener interface; it waits
@@ -68,14 +78,4 @@ func (s *InmemSocket) Dial(network, addr string) (net.Conn, error) {
 	}
 
 	return clientConn, nil
-}
-
-// Network returns the addr string, satisfies net.Addr
-func (a dummyAddr) Network() string {
-	return string(a)
-}
-
-// String returns the string form
-func (a dummyAddr) String() string {
-	return string(a)
 }

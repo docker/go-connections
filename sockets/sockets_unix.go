@@ -2,8 +2,6 @@
 
 package sockets
 
-import "net/http"
-
-func configureNpipeTransport(tr *http.Transport, proto, addr string) error {
+func configureNpipeTransport(any, string) error {
 	return ErrProtocolNotAvailable
 }
