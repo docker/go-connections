@@ -173,6 +173,10 @@ func splitParts(rawport string) (hostIP, hostPort, containerPort string) {
 func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	ip, hostPort, containerPort := splitParts(rawPort)
 	proto, containerPort := SplitProtoPort(containerPort)
+	if containerPort == "" {
+		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
+	}
+
 	proto = strings.ToLower(proto)
 	if err := validateProto(proto); err != nil {
 		return nil, err
@@ -188,9 +192,6 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	}
 	if ip != "" && net.ParseIP(ip) == nil {
 		return nil, errors.New("invalid IP address: " + ip)
-	}
-	if containerPort == "" {
-		return nil, fmt.Errorf("no port specified: %s<empty>", rawPort)
 	}
 
 	startPort, endPort, err := ParsePortRange(containerPort)

@@ -241,6 +241,38 @@ func TestSplitProtoPort(t *testing.T) {
 	}
 }
 
+func TestParsePortSpecEmptyContainerPort(t *testing.T) {
+	tests := []struct {
+		name     string
+		spec     string
+		expError string
+	}{
+		{
+			name:     "empty spec",
+			spec:     "",
+			expError: `no port specified: <empty>`,
+		},
+		{
+			name:     "empty container port",
+			spec:     `0.0.0.0:1234-1235:/tcp`,
+			expError: `no port specified: 0.0.0.0:1234-1235:/tcp<empty>`,
+		},
+		{
+			name:     "empty container port and proto",
+			spec:     `0.0.0.0:1234-1235:`,
+			expError: `no port specified: 0.0.0.0:1234-1235:<empty>`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ParsePortSpec(tc.spec)
+			if err == nil || err.Error() != tc.expError {
+				t.Fatalf("expected %v, got: %v", tc.expError, err)
+			}
+		})
+	}
+}
+
 func TestParsePortSpecFull(t *testing.T) {
 	portMappings, err := ParsePortSpec("0.0.0.0:1234-1235:3333-3334/tcp")
 	if err != nil {
