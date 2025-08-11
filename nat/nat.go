@@ -61,28 +61,35 @@ func ParsePortRangeToInt(rawPort string) (startPort, endPort int, _ error) {
 
 // Proto returns the protocol of a Port
 func (p Port) Proto() string {
-	proto, _ := SplitProtoPort(string(p))
+	_, proto, _ := strings.Cut(string(p), "/")
+	if proto == "" {
+		proto = "tcp"
+	}
 	return proto
 }
 
 // Port returns the port number of a Port
 func (p Port) Port() string {
-	_, port := SplitProtoPort(string(p))
+	port, _, _ := strings.Cut(string(p), "/")
 	return port
 }
 
-// Int returns the port number of a Port as an int
+// Int returns the port number of a Port as an int. It assumes [Port]
+// is valid, and returns 0 otherwise.
 func (p Port) Int() int {
-	portStr := p.Port()
 	// We don't need to check for an error because we're going to
-	// assume that any error would have been found, and reported, in NewPort()
-	port, _ := ParsePort(portStr)
+	// assume that any error would have been found, and reported, in [NewPort]
+	port, _ := parsePortNumber(p.Port())
 	return port
 }
 
 // Range returns the start/end port numbers of a Port range as ints
 func (p Port) Range() (int, int, error) {
-	return ParsePortRangeToInt(p.Port())
+	portRange := p.Port()
+	if portRange == "" {
+		return 0, 0, nil
+	}
+	return parsePortRange(portRange)
 }
 
 // SplitProtoPort splits a port(range) and protocol, formatted as "<portnum>/[<proto>]"
