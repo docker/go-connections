@@ -37,9 +37,9 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 	}
 	switch proto {
 	case "unix":
-		return configureUnixTransport(tr, proto, addr)
+		return configureUnixTransport(tr, addr)
 	case "npipe":
-		return configureNpipeTransport(tr, proto, addr)
+		return configureNpipeTransport(tr, addr)
 	default:
 		tr.Proxy = http.ProxyFromEnvironment
 		tr.DisableCompression = false
@@ -50,7 +50,7 @@ func ConfigureTransport(tr *http.Transport, proto, addr string) error {
 	return nil
 }
 
-func configureUnixTransport(tr *http.Transport, proto, addr string) error {
+func configureUnixTransport(tr *http.Transport, addr string) error {
 	if len(addr) > maxUnixSocketPathSize {
 		return fmt.Errorf("unix socket path %q is too long", addr)
 	}
@@ -60,7 +60,7 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 		Timeout: defaultTimeout,
 	}
 	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
-		return dialer.DialContext(ctx, proto, addr)
+		return dialer.DialContext(ctx, "unix", addr)
 	}
 	return nil
 }

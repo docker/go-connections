@@ -8,7 +8,7 @@ import (
 	"github.com/Microsoft/go-winio"
 )
 
-func configureNpipeTransport(tr *http.Transport, proto, addr string) error {
+func configureNpipeTransport(tr *http.Transport, addr string) error {
 	// No need for compression in local communications.
 	tr.DisableCompression = true
 	tr.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
