@@ -38,7 +38,7 @@ func TestParsePort(t *testing.T) {
 			doc:     "negative value",
 			input:   "-1",
 			expPort: 0,
-			expErr:  `invalid port '-1': invalid syntax`,
+			expErr:  `invalid port '-1': value out of range (0–65535)`,
 		},
 		// FIXME currently this is a valid port. I don't think it should be.
 		// I'm leaving this test until we make a decision.
@@ -57,7 +57,7 @@ func TestParsePort(t *testing.T) {
 			doc:     "value out of range",
 			input:   "65536",
 			expPort: 0,
-			expErr:  `invalid port '65536': value out of range`,
+			expErr:  `invalid port '65536': value out of range (0–65535)`,
 		},
 	}
 

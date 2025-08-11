@@ -47,11 +47,11 @@ func ParsePort(rawPort string) (int, error) {
 	if rawPort == "" {
 		return 0, nil
 	}
-	port, err := strconv.ParseUint(rawPort, 10, 16)
+	port, err := parsePortNumber(rawPort)
 	if err != nil {
-		return 0, fmt.Errorf("invalid port '%s': %w", rawPort, errors.Unwrap(err))
+		return 0, fmt.Errorf("invalid port '%s': %w", rawPort, err)
 	}
-	return int(port), nil
+	return port, nil
 }
 
 // ParsePortRangeToInt parses the port range string and returns start/end ints

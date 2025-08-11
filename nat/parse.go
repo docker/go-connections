@@ -31,3 +31,24 @@ func ParsePortRange(ports string) (uint64, uint64, error) {
 	}
 	return start, end, nil
 }
+
+// parsePortNumber parses rawPort into an int, unwrapping strconv errors
+// and returning a single "out of range" error for any value outside 0–65535.
+func parsePortNumber(rawPort string) (int, error) {
+	if rawPort == "" {
+		return 0, errors.New("value is empty")
+	}
+	port, err := strconv.ParseInt(rawPort, 10, 0)
+	if err != nil {
+		var numErr *strconv.NumError
+		if errors.As(err, &numErr) {
+			err = numErr.Err
+		}
+		return 0, err
+	}
+	if port < 0 || port > 65535 {
+		return 0, errors.New("value out of range (0–65535)")
+	}
+
+	return int(port), nil
+}
