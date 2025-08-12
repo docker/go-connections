@@ -50,7 +50,7 @@ func (s portMapSorter) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s portMapSorter) Less(i, j int) bool {
 	pi, pj := s[i].port, s[j].port
 	hpi, hpj := toInt(s[i].binding.HostPort), toInt(s[j].binding.HostPort)
-	return hpi > hpj || pi.Int() > pj.Int() || (pi.Int() == pj.Int() && strings.ToLower(pi.Proto()) == "tcp")
+	return hpi > hpj || pi.Int() > pj.Int() || (pi.Int() == pj.Int() && strings.EqualFold(pi.Proto(), "tcp"))
 }
 
 // SortPortMap sorts the list of ports and their respected mapping. The ports
@@ -87,10 +87,7 @@ func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 	}
 }
 
-func toInt(s string) uint64 {
-	i, _, err := ParsePortRange(s)
-	if err != nil {
-		i = 0
-	}
+func toInt(s string) int {
+	i, _, _ := parsePortRange(s)
 	return i
 }
