@@ -35,7 +35,7 @@ func Sort(ports []Port, predicate func(i, j Port) bool) {
 
 type portMapEntry struct {
 	port      Port
-	binding   PortBinding
+	binding   *PortBinding
 	portInt   int
 	portProto string
 }
@@ -51,7 +51,13 @@ func (s portMapSorter) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 // 3. port with tcp protocol
 func (s portMapSorter) Less(i, j int) bool {
 	pi, pj := s[i].portInt, s[j].portInt
-	hpi, hpj := toInt(s[i].binding.HostPort), toInt(s[j].binding.HostPort)
+	var hpi, hpj int
+	if s[i].binding != nil {
+		hpi = toInt(s[i].binding.HostPort)
+	}
+	if s[j].binding != nil {
+		hpj = toInt(s[j].binding.HostPort)
+	}
 	return hpi > hpj || pi > pj || (pi == pj && strings.EqualFold(s[i].portProto, "tcp"))
 }
 
@@ -63,8 +69,9 @@ func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 		portInt, portProto := p.Int(), p.Proto()
 		if binding, ok := bindings[p]; ok && len(binding) > 0 {
 			for _, b := range binding {
+				b := b // capture loop variable for go < 1.22
 				s = append(s, portMapEntry{
-					port: p, binding: b,
+					port: p, binding: &b,
 					portInt: portInt, portProto: portProto,
 				})
 			}
@@ -90,8 +97,8 @@ func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 			i++
 		}
 		// reorder bindings for this port
-		if _, ok := bindings[entry.port]; ok {
-			bindings[entry.port] = append(bindings[entry.port], entry.binding)
+		if entry.binding != nil {
+			bindings[entry.port] = append(bindings[entry.port], *entry.binding)
 		}
 	}
 }
