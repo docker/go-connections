@@ -1,6 +1,6 @@
 module github.com/docker/go-connections
 
-go 1.18
+go 1.23.0
 
 require github.com/Microsoft/go-winio v0.4.21
 
