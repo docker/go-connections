@@ -2,14 +2,15 @@ package nat
 
 import (
 	"fmt"
+	"net/netip"
 	"reflect"
 	"testing"
 )
 
 func TestSortUniquePorts(t *testing.T) {
 	ports := []Port{
-		"6379/tcp",
-		"22/tcp",
+		MustParsePort("6379/tcp"),
+		MustParsePort("22/tcp"),
 	}
 
 	Sort(ports, func(ip, jp Port) bool {
@@ -17,7 +18,7 @@ func TestSortUniquePorts(t *testing.T) {
 	})
 
 	first := ports[0]
-	if string(first) != "22/tcp" {
+	if first.String() != "22/tcp" {
 		t.Log(first)
 		t.Fail()
 	}
@@ -25,10 +26,10 @@ func TestSortUniquePorts(t *testing.T) {
 
 func TestSortSamePortWithDifferentProto(t *testing.T) {
 	ports := []Port{
-		"8888/tcp",
-		"8888/udp",
-		"6379/tcp",
-		"6379/udp",
+		MustParsePort("8888/tcp"),
+		MustParsePort("8888/udp"),
+		MustParsePort("6379/tcp"),
+		MustParsePort("6379/udp"),
 	}
 
 	Sort(ports, func(ip, jp Port) bool {
@@ -36,42 +37,42 @@ func TestSortSamePortWithDifferentProto(t *testing.T) {
 	})
 
 	first := ports[0]
-	if string(first) != "6379/tcp" {
+	if first.String() != "6379/tcp" {
 		t.Fail()
 	}
 }
 
 func TestSortPortMap(t *testing.T) {
 	ports := []Port{
-		"22/tcp",
-		"22/udp",
-		"8000/tcp",
-		"8443/tcp",
-		"6379/tcp",
-		"9999/tcp",
+		MustParsePort("22/tcp"),
+		MustParsePort("22/udp"),
+		MustParsePort("8000/tcp"),
+		MustParsePort("8443/tcp"),
+		MustParsePort("6379/tcp"),
+		MustParsePort("9999/tcp"),
 	}
 
 	portMap := map[Port][]PortBinding{
-		"22/tcp":   {{}},
-		"8000/tcp": {{}},
-		"8443/tcp": {},
-		"6379/tcp": {{}, {HostIP: "0.0.0.0", HostPort: "32749"}},
-		"9999/tcp": {{HostIP: "0.0.0.0", HostPort: "40000"}},
+		MustParsePort("22/tcp"):   {{}},
+		MustParsePort("8000/tcp"): {{}},
+		MustParsePort("8443/tcp"): {},
+		MustParsePort("6379/tcp"): {{}, {HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: "32749"}},
+		MustParsePort("9999/tcp"): {{HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: "40000"}},
 	}
 
 	SortPortMap(ports, portMap)
 	if !reflect.DeepEqual(ports, []Port{
-		"9999/tcp",
-		"6379/tcp",
-		"8443/tcp",
-		"8000/tcp",
-		"22/tcp",
-		"22/udp",
+		MustParsePort("9999/tcp"),
+		MustParsePort("6379/tcp"),
+		MustParsePort("8443/tcp"),
+		MustParsePort("8000/tcp"),
+		MustParsePort("22/tcp"),
+		MustParsePort("22/udp"),
 	}) {
 		t.Errorf("failed to prioritize port with explicit mappings, got %v", ports)
 	}
-	if pm := portMap["6379/tcp"]; !reflect.DeepEqual(pm, []PortBinding{
-		{HostIP: "0.0.0.0", HostPort: "32749"},
+	if pm := portMap[MustParsePort("6379/tcp")]; !reflect.DeepEqual(pm, []PortBinding{
+		{HostIP: netip.MustParseAddr("0.0.0.0"), HostPort: "32749"},
 		{},
 	}) {
 		t.Errorf("failed to prioritize bindings with explicit mappings, got %v", pm)
@@ -85,18 +86,18 @@ func BenchmarkSortPortMap(b *testing.B) {
 
 	for i := 0; i < n; i++ {
 		portNum := 30000 + (i % 50) // force duplicate port numbers
-		tcp := Port(fmt.Sprintf("%d/tcp", portNum))
-		udp := Port(fmt.Sprintf("%d/udp", portNum))
+		tcp := MustParsePort(fmt.Sprintf("%d/tcp", portNum))
+		udp := MustParsePort(fmt.Sprintf("%d/udp", portNum))
 
 		ports = append(ports, tcp, udp)
 
 		portMap[tcp] = []PortBinding{
-			{HostIP: "127.0.0.2", HostPort: fmt.Sprint(40000 + i)},
-			{HostIP: "127.0.0.1", HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: netip.MustParseAddr("127.0.0.2"), HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: fmt.Sprint(40000 + i)},
 		}
 		portMap[udp] = []PortBinding{
-			{HostIP: "127.0.0.2", HostPort: fmt.Sprint(40000 + i)},
-			{HostIP: "127.0.0.1", HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: netip.MustParseAddr("127.0.0.2"), HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: netip.MustParseAddr("127.0.0.1"), HostPort: fmt.Sprint(40000 + i)},
 		}
 	}
 

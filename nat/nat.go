@@ -5,37 +5,42 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"strconv"
 	"strings"
+
+	"github.com/moby/moby/api/types/network"
 )
 
 // PortBinding represents a binding between a Host IP address and a Host Port
-type PortBinding struct {
-	// HostIP is the host IP Address
-	HostIP string `json:"HostIp"`
-	// HostPort is the host port number
-	HostPort string
-}
+//
+// Deprecated: Use [network.PortBinding] instead.
+type PortBinding = network.PortBinding
 
 // PortMap is a collection of PortBinding indexed by Port
-type PortMap map[Port][]PortBinding
+//
+// Deprecated: Use [network.PortMap] instead.
+type PortMap = network.PortMap
 
 // PortSet is a collection of structs indexed by Port
-type PortSet map[Port]struct{}
+//
+// Deprecated: Use [network.PortSet] instead.
+type PortSet = network.PortSet
 
 // Port is a string containing port number and protocol in the format "80/tcp"
-type Port string
+//
+// Deprecated: Use [network.Port] or [network.PortRange] accordingly instead.
+type Port struct {
+	network.PortRange
+}
 
 // NewPort creates a new instance of a Port given a protocol and port number or port range
 func NewPort(proto, portOrRange string) (Port, error) {
-	start, end, err := parsePortRange(portOrRange)
+	pr, err := network.ParsePortRange(portOrRange + "/" + proto)
 	if err != nil {
-		return "", err
+		return Port{}, err
 	}
-	if start == end {
-		return Port(fmt.Sprintf("%d/%s", start, proto)), nil
-	}
-	return Port(fmt.Sprintf("%d-%d/%s", start, end, proto)), nil
+	return Port{pr}, nil
 }
 
 // ParsePort parses the port number string and returns an int
@@ -59,37 +64,20 @@ func ParsePortRangeToInt(rawPort string) (startPort, endPort int, _ error) {
 	return parsePortRange(rawPort)
 }
 
-// Proto returns the protocol of a Port
-func (p Port) Proto() string {
-	_, proto, _ := strings.Cut(string(p), "/")
-	if proto == "" {
-		proto = "tcp"
-	}
-	return proto
-}
-
 // Port returns the port number of a Port
 func (p Port) Port() string {
-	port, _, _ := strings.Cut(string(p), "/")
-	return port
+	return fmt.Sprintf("%d", p.Start())
 }
 
 // Int returns the port number of a Port as an int. It assumes [Port]
 // is valid, and returns 0 otherwise.
 func (p Port) Int() int {
-	// We don't need to check for an error because we're going to
-	// assume that any error would have been found, and reported, in [NewPort]
-	port, _ := parsePortNumber(p.Port())
-	return port
+	return int(p.Start())
 }
 
 // Range returns the start/end port numbers of a Port range as ints
 func (p Port) Range() (int, int, error) {
-	portRange := p.Port()
-	if portRange == "" {
-		return 0, 0, nil
-	}
-	return parsePortRange(portRange)
+	return int(p.Start()), int(p.End()), nil
 }
 
 // SplitProtoPort splits a port(range) and protocol, formatted as "<portnum>/[<proto>]"
@@ -144,13 +132,21 @@ func ParsePortSpecs(ports []string) (map[Port]struct{}, map[Port][]PortBinding, 
 }
 
 // PortMapping is a data object mapping a Port to a PortBinding
+//
+// Deprecated: Use [network.PortMap] instead.
 type PortMapping struct {
 	Port    Port
 	Binding PortBinding
 }
 
 func (p *PortMapping) String() string {
-	return net.JoinHostPort(p.Binding.HostIP, p.Binding.HostPort+":"+string(p.Port))
+	var host string
+
+	if p.Binding.HostIP != netip.IPv4Unspecified() {
+		host = p.Binding.HostIP.String()
+	}
+
+	return net.JoinHostPort(host, p.Binding.HostPort+":"+p.Port.String())
 }
 
 func splitParts(rawport string) (hostIP, hostPort, containerPort string) {
@@ -228,9 +224,28 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 				hPort += "-" + strconv.Itoa(endHostPort)
 			}
 		}
+		port, err := network.ParsePortRange(fmt.Sprintf("%d/%s", startPort+i, proto))
+		if err != nil {
+			return nil, err
+		}
+
+		var addr netip.Addr
+		if strings.Count(ip, ":") >= 2 {
+			addr = netip.IPv6Unspecified()
+		} else {
+			addr = netip.IPv4Unspecified()
+		}
+
+		if ip != "" {
+			addr, err = netip.ParseAddr(ip)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		ports = append(ports, PortMapping{
-			Port:    Port(strconv.Itoa(startPort+i) + "/" + proto),
-			Binding: PortBinding{HostIP: ip, HostPort: hPort},
+			Port:    Port{port},
+			Binding: PortBinding{HostIP: addr, HostPort: hPort},
 		})
 	}
 	return ports, nil

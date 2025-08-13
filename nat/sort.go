@@ -72,14 +72,14 @@ func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 				b := b // capture loop variable for go < 1.22
 				s = append(s, portMapEntry{
 					port: p, binding: &b,
-					portInt: portInt, portProto: portProto,
+					portInt: portInt, portProto: string(portProto),
 				})
 			}
 			bindings[p] = []PortBinding{}
 		} else {
 			s = append(s, portMapEntry{
 				port:    p,
-				portInt: portInt, portProto: portProto,
+				portInt: portInt, portProto: string(portProto),
 			})
 		}
 	}
