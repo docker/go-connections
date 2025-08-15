@@ -1,6 +1,7 @@
 package nat
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -74,5 +75,42 @@ func TestSortPortMap(t *testing.T) {
 		{},
 	}) {
 		t.Errorf("failed to prioritize bindings with explicit mappings, got %v", pm)
+	}
+}
+
+func BenchmarkSortPortMap(b *testing.B) {
+	const n = 100
+	ports := make([]Port, 0, n*2)
+	portMap := make(map[Port][]PortBinding, n*2)
+
+	for i := 0; i < n; i++ {
+		portNum := 30000 + (i % 50) // force duplicate port numbers
+		tcp := Port(fmt.Sprintf("%d/tcp", portNum))
+		udp := Port(fmt.Sprintf("%d/udp", portNum))
+
+		ports = append(ports, tcp, udp)
+
+		portMap[tcp] = []PortBinding{
+			{HostIP: "127.0.0.2", HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: "127.0.0.1", HostPort: fmt.Sprint(40000 + i)},
+		}
+		portMap[udp] = []PortBinding{
+			{HostIP: "127.0.0.2", HostPort: fmt.Sprint(40000 + i)},
+			{HostIP: "127.0.0.1", HostPort: fmt.Sprint(40000 + i)},
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		portsCopy := make([]Port, len(ports))
+		copy(portsCopy, ports)
+
+		bindingsCopy := make(map[Port][]PortBinding, len(portMap))
+		for k, v := range portMap {
+			bindingsCopy[k] = append([]PortBinding(nil), v...)
+		}
+
+		SortPortMap(portsCopy, bindingsCopy)
 	}
 }
