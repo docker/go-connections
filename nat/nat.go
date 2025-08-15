@@ -7,24 +7,29 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/moby/moby/api/types/container"
 )
 
 // PortBinding represents a binding between a Host IP address and a Host Port
-type PortBinding struct {
-	// HostIP is the host IP Address
-	HostIP string `json:"HostIp"`
-	// HostPort is the host port number
-	HostPort string
-}
+//
+// Deprecated: Use github.com/moby/moby/api/types/container.PortBinding instead.
+type PortBinding = container.PortBinding
 
 // PortMap is a collection of PortBinding indexed by Port
-type PortMap map[Port][]PortBinding
+//
+// Deprecated: Use github.com/moby/moby/api/types/container.PortMap instead.
+type PortMap = container.PortMap
 
 // PortSet is a collection of structs indexed by Port
-type PortSet map[Port]struct{}
+//
+// Deprecated: Use github.com/moby/moby/api/types/container.PortSet instead.
+type PortSet = container.PortSet
 
 // Port is a string containing port number and protocol in the format "80/tcp"
-type Port string
+//
+// Deprecated: Use github.com/moby/moby/api/types/container.PortProto instead.
+type Port = container.PortProto
 
 // NewPort creates a new instance of a Port given a protocol and port number or port range
 func NewPort(proto, portOrRange string) (Port, error) {
@@ -33,9 +38,9 @@ func NewPort(proto, portOrRange string) (Port, error) {
 		return "", err
 	}
 	if start == end {
-		return Port(fmt.Sprintf("%d/%s", start, proto)), nil
+		return container.PortProto(fmt.Sprintf("%d/%s", start, proto)), nil
 	}
-	return Port(fmt.Sprintf("%d-%d/%s", start, end, proto)), nil
+	return container.PortProto(fmt.Sprintf("%d-%d/%s", start, end, proto)), nil
 }
 
 // ParsePort parses the port number string and returns an int
@@ -57,39 +62,6 @@ func ParsePortRangeToInt(rawPort string) (startPort, endPort int, _ error) {
 		return 0, 0, nil
 	}
 	return parsePortRange(rawPort)
-}
-
-// Proto returns the protocol of a Port
-func (p Port) Proto() string {
-	_, proto, _ := strings.Cut(string(p), "/")
-	if proto == "" {
-		proto = "tcp"
-	}
-	return proto
-}
-
-// Port returns the port number of a Port
-func (p Port) Port() string {
-	port, _, _ := strings.Cut(string(p), "/")
-	return port
-}
-
-// Int returns the port number of a Port as an int. It assumes [Port]
-// is valid, and returns 0 otherwise.
-func (p Port) Int() int {
-	// We don't need to check for an error because we're going to
-	// assume that any error would have been found, and reported, in [NewPort]
-	port, _ := parsePortNumber(p.Port())
-	return port
-}
-
-// Range returns the start/end port numbers of a Port range as ints
-func (p Port) Range() (int, int, error) {
-	portRange := p.Port()
-	if portRange == "" {
-		return 0, 0, nil
-	}
-	return parsePortRange(portRange)
 }
 
 // SplitProtoPort splits a port(range) and protocol, formatted as "<portnum>/[<proto>]"
