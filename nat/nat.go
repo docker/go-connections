@@ -17,6 +17,16 @@ type PortBinding struct {
 	HostPort string
 }
 
+func (pb *PortBinding) String() string {
+	if pb.HostPort == "" {
+		return ""
+	}
+	if pb.HostIP == "" {
+		return pb.HostPort
+	}
+	return net.JoinHostPort(pb.HostIP, pb.HostPort)
+}
+
 // PortMap is a collection of PortBinding indexed by Port
 type PortMap map[Port][]PortBinding
 
