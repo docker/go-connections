@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "oldstable", "stable"]
+        go: ["oldstable", "stable"]
         platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
@@ -48,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "oldstable", "stable"]
+        go: ["oldstable", "stable"]
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
