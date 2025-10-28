@@ -76,7 +76,7 @@ func withSDDL(sddl string) SockOption {
 		return windows.SetNamedSecurityInfo(
 			path,
 			windows.SE_FILE_OBJECT,
-			windows.DACL_SECURITY_INFORMATION|windows.OWNER_SECURITY_INFORMATION,
+			windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION,
 			nil, // do not change the owner
 			nil, // do not change the owner
 			dacl,
