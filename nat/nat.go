@@ -18,10 +18,10 @@ type PortBinding struct {
 }
 
 // PortMap is a collection of PortBinding indexed by Port
-type PortMap map[Port][]PortBinding
+type PortMap = map[Port][]PortBinding
 
 // PortSet is a collection of structs indexed by Port
-type PortSet map[Port]struct{}
+type PortSet = map[Port]struct{}
 
 // Port is a string containing port number and protocol in the format "80/tcp"
 type Port string
