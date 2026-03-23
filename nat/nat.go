@@ -218,7 +218,7 @@ func ParsePortSpec(rawPort string) ([]PortMapping, error) {
 	count := endPort - startPort + 1
 	ports := make([]PortMapping, 0, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		hPort := ""
 		if hostPort != "" {
 			hPort = strconv.Itoa(startHostPort + i)

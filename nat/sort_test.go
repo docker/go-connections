@@ -83,7 +83,7 @@ func BenchmarkSortPortMap(b *testing.B) {
 	ports := make([]Port, 0, n*2)
 	portMap := make(map[Port][]PortBinding, n*2)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		portNum := 30000 + (i % 50) // force duplicate port numbers
 		tcp := Port(fmt.Sprintf("%d/tcp", portNum))
 		udp := Port(fmt.Sprintf("%d/udp", portNum))
