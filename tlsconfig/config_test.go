@@ -183,9 +183,9 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 	if tlsConfig.ClientAuth != tls.VerifyClientCertIfGiven {
 		t.Fatal("ClientAuth was not set to what was in the options")
 	}
-	basePool, err := SystemCertPool()
+	basePool, err := x509.SystemCertPool()
 	if err != nil {
-		basePool = x509.NewCertPool()
+		t.Fatal("Failed to get SystemCertPool", err)
 	}
 	// because we are not enabling `ExclusiveRootPools`, any root pool will also contain the system roots
 	if tlsConfig.ClientCAs == nil || len(tlsConfig.ClientCAs.Subjects()) != len(basePool.Subjects())+2 { //nolint:staticcheck // Ignore SA1019: tlsConfig.ClientCAs.Subjects has been deprecated since Go 1.18: if s was returned by SystemCertPool, Subjects will not include the system roots.
@@ -441,9 +441,9 @@ func TestConfigClientTLSRootCAFileWithOneCert(t *testing.T) {
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
 	}
-	basePool, err := SystemCertPool()
+	basePool, err := x509.SystemCertPool()
 	if err != nil {
-		basePool = x509.NewCertPool()
+		t.Fatal("Failed to get SystemCertPool", err)
 	}
 	// because we are not enabling `ExclusiveRootPools`, any root pool will also contain the system roots
 	if tlsConfig.RootCAs == nil || len(tlsConfig.RootCAs.Subjects()) != len(basePool.Subjects())+2 { //nolint:staticcheck // Ignore SA1019: tlsConfig.ClientCAs.Subjects has been deprecated since Go 1.18: if s was returned by SystemCertPool, Subjects will not include the system roots.
