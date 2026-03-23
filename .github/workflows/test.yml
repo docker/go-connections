@@ -13,51 +13,57 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
 
 jobs:
 
   linux:
-    name: Test ${{ matrix.platform }} (${{ matrix.go }})
+    name: ${{ matrix.platform }} (${{ matrix.go-version || 'oldest' }})
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "oldstable", "stable"]
+        go-version:
+          - "" # do not specify go-version to fall back on go-version-file (use go.mod); see https://github.com/actions/setup-go/issues/450#issuecomment-3620402646
+          - "oldstable"
+          - "stable"
         platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
-    - name: Install Go ${{ matrix.go }}
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ matrix.go }}
     - name: Setup IPv6
       run: sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=0 net.ipv6.conf.default.disable_ipv6=0 net.ipv6.conf.all.disable_ipv6=0
     - name: Checkout code
       uses: actions/checkout@v6
+    - name: Install Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
+        go-version-file: "go.mod" # used when go-version is not specified.
     - name: Build for ${{ matrix.platform }}
       run: go build ./...
     - name: Test
       run: go test -exec sudo -v ./...
 
   other:
-    name: Test ${{ matrix.platform }} (${{ matrix.go }})
+    name: ${{ matrix.platform }} (${{ matrix.go-version || 'oldest' }})
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        go: ["1.18.x", "oldstable", "stable"]
+        go-version:
+          - "" # do not specify go-version to fall back on go-version-file (use go.mod); see https://github.com/actions/setup-go/issues/450#issuecomment-3620402646
+          - "oldstable"
+          - "stable"
         platform: [windows-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - name: Install Go ${{ matrix.go }}
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go }}
       - name: Checkout code
         uses: actions/checkout@v6
+      - name: Install Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          go-version-file: "go.mod" # used when go-version is not specified.
       - name: Build for ${{ matrix.platform }}
         run: go build ./...
       - name: Test
@@ -80,4 +86,4 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          args: --timeout=5m
+          args: --timeout=5m --verbose
