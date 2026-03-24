@@ -77,13 +77,13 @@ func defaultConfig(ops ...func(*tls.Config)) *tls.Config {
 }
 
 // certPool returns an X.509 certificate pool from `caFile`, the certificate file.
-func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
+func certPool(opts Options) (*x509.CertPool, error) {
 	// If we should verify the server, we need to load a trusted ca
 	var (
 		pool *x509.CertPool
 		err  error
 	)
-	if exclusivePool {
+	if opts.ExclusiveRootPools {
 		pool = x509.NewCertPool()
 	} else {
 		pool, err = x509.SystemCertPool()
@@ -91,12 +91,15 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
 	}
-	pemData, err := os.ReadFile(caFile)
+	if opts.CAFile == "" {
+		return pool, nil
+	}
+	pemData, err := os.ReadFile(opts.CAFile)
 	if err != nil {
-		return nil, fmt.Errorf("could not read CA certificate %q: %v", caFile, err)
+		return nil, fmt.Errorf("could not read CA certificate %q: %v", opts.CAFile, err)
 	}
 	if !pool.AppendCertsFromPEM(pemData) {
-		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", caFile)
+		return nil, fmt.Errorf("failed to append certificates from PEM file: %q", opts.CAFile)
 	}
 	return pool, nil
 }
@@ -199,7 +202,7 @@ func Client(options Options) (*tls.Config, error) {
 	tlsConfig := defaultConfig()
 	tlsConfig.InsecureSkipVerify = options.InsecureSkipVerify
 	if !options.InsecureSkipVerify && options.CAFile != "" {
-		CAs, err := certPool(options.CAFile, options.ExclusiveRootPools)
+		CAs, err := certPool(options)
 		if err != nil {
 			return nil, err
 		}
@@ -232,7 +235,7 @@ func Server(options Options) (*tls.Config, error) {
 	}
 	tlsConfig.Certificates = []tls.Certificate{tlsCert}
 	if options.ClientAuth >= tls.VerifyClientCertIfGiven && options.CAFile != "" {
-		CAs, err := certPool(options.CAFile, options.ExclusiveRootPools)
+		CAs, err := certPool(options)
 		if err != nil {
 			return nil, err
 		}
