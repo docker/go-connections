@@ -118,8 +118,8 @@ func TestConfigServerTLSServerCertsOnly(t *testing.T) {
 	if len(tlsConfig.Certificates[0].Certificate) != len(keypair.Certificate) {
 		t.Fatal("Unexpected server certificates")
 	}
-	for i, cert := range tlsConfig.Certificates[0].Certificate {
-		if !bytes.Equal(cert, keypair.Certificate[i]) {
+	for i, crt := range tlsConfig.Certificates[0].Certificate {
+		if !bytes.Equal(crt, keypair.Certificate[i]) {
 			t.Fatal("Unexpected server certificates")
 		}
 	}
@@ -214,11 +214,11 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		if pemBlock == nil {
 			t.Fatal("Malformed certificate")
 		}
-		cert, err := x509.ParseCertificate(pemBlock.Bytes)
+		crt, err := x509.ParseCertificate(pemBlock.Bytes)
 		if err != nil {
 			t.Fatal("Unable to parse certificate")
 		}
-		testCerts = append(testCerts, cert)
+		testCerts = append(testCerts, crt)
 	}
 
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
@@ -234,8 +234,8 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure server TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		if _, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs}); err != nil {
+	for i, crt := range testCerts {
+		if _, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs}); err != nil {
 			t.Fatalf("Unable to verify certificate %d: %v", i, err)
 		}
 	}
@@ -254,13 +254,13 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure server TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		_, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs})
+	for i, crt := range testCerts {
+		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs})
 		switch {
 		case i == 0 && err != nil:
 			t.Fatal("Unable to verify custom certificate, even though the root pool should have only the custom CA", err)
 		case i == 1 && err == nil:
-			t.Fatal("Successfully verified system root-signed certificate though the root pool should have only the cusotm CA", err)
+			t.Fatal("Successfully verified system root-signed certificate though the root pool should have only the custom CA", err)
 		}
 	}
 
@@ -274,8 +274,8 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure server TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		_, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs})
+	for i, crt := range testCerts {
+		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs})
 		switch {
 		case i == 1 && err != nil:
 			t.Fatal("Unable to verify system root-signed certificate, even though the root pool should be the system pool only", err)
@@ -510,8 +510,8 @@ func TestConfigClientTLSValidClientCertAndKey(t *testing.T) {
 	if len(tlsConfig.Certificates[0].Certificate) != len(keypair.Certificate) {
 		t.Fatal("Unexpected client certificates")
 	}
-	for i, cert := range tlsConfig.Certificates[0].Certificate {
-		if !bytes.Equal(cert, keypair.Certificate[i]) {
+	for i, crt := range tlsConfig.Certificates[0].Certificate {
+		if !bytes.Equal(crt, keypair.Certificate[i]) {
 			t.Fatal("Unexpected client certificates")
 		}
 	}
@@ -556,11 +556,11 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		if pemBlock == nil {
 			t.Fatal("Malformed certificate")
 		}
-		cert, err := x509.ParseCertificate(pemBlock.Bytes)
+		crt, err := x509.ParseCertificate(pemBlock.Bytes)
 		if err != nil {
 			t.Fatal("Unable to parse certificate")
 		}
-		testCerts = append(testCerts, cert)
+		testCerts = append(testCerts, crt)
 	}
 
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
@@ -571,8 +571,8 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure client TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		if _, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs}); err != nil {
+	for i, crt := range testCerts {
+		if _, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs}); err != nil {
 			t.Fatalf("Unable to verify certificate %d: %v", i, err)
 		}
 	}
@@ -588,13 +588,13 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure client TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		_, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs})
+	for i, crt := range testCerts {
+		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs})
 		switch {
 		case i == 0 && err != nil:
 			t.Fatal("Unable to verify custom certificate, even though the root pool should have only the custom CA", err)
 		case i == 1 && err == nil:
-			t.Fatal("Successfully verified system root-signed certificate though the root pool should have only the cusotm CA", err)
+			t.Fatal("Successfully verified system root-signed certificate though the root pool should have only the custom CA", err)
 		}
 	}
 
@@ -605,8 +605,8 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		t.Fatal("Unable to configure client TLS", err)
 	}
 
-	for i, cert := range testCerts {
-		_, err := cert.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs})
+	for i, crt := range testCerts {
+		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs})
 		switch {
 		case i == 1 && err != nil:
 			t.Fatal("Unable to verify system root-signed certificate, even though the root pool should be the system pool only", err)
