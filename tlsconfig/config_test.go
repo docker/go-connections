@@ -4,41 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"os"
+	"path/filepath"
 	"reflect"
-	"runtime"
 	"testing"
 )
 
-// This is the currently active Amazon Root CA 1 (CN=Amazon Root CA 1,O=Amazon,C=US),
-// downloaded from: https://www.amazontrust.com/repository/AmazonRootCA1.pem
-// It's valid since May 26 00:00:00 2015 GMT and expires on Jan 17 00:00:00 2038 GMT.
-// Download updated versions from https://www.amazontrust.com/repository/
 const (
-	systemRootTrustedCert = `
------BEGIN CERTIFICATE-----
-MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF
-ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6
-b24gUm9vdCBDQSAxMB4XDTE1MDUyNjAwMDAwMFoXDTM4MDExNzAwMDAwMFowOTEL
-MAkGA1UEBhMCVVMxDzANBgNVBAoTBkFtYXpvbjEZMBcGA1UEAxMQQW1hem9uIFJv
-b3QgQ0EgMTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALJ4gHHKeNXj
-ca9HgFB0fW7Y14h29Jlo91ghYPl0hAEvrAIthtOgQ3pOsqTQNroBvo3bSMgHFzZM
-9O6II8c+6zf1tRn4SWiw3te5djgdYZ6k/oI2peVKVuRF4fn9tBb6dNqcmzU5L/qw
-IFAGbHrQgLKm+a/sRxmPUDgH3KKHOVj4utWp+UhnMJbulHheb4mjUcAwhmahRWa6
-VOujw5H5SNz/0egwLX0tdHA114gk957EWW67c4cX8jJGKLhD+rcdqsq08p8kDi1L
-93FcXmn/6pUCyziKrlA4b9v7LWIbxcceVOF34GfID5yHI9Y/QCB/IIDEgEw+OyQm
-jgSubJrIqg0CAwEAAaNCMEAwDwYDVR0TAQH/BAUwAwEB/zAOBgNVHQ8BAf8EBAMC
-AYYwHQYDVR0OBBYEFIQYzIU07LwMlJQuCFmcx7IQTgoIMA0GCSqGSIb3DQEBCwUA
-A4IBAQCY8jdaQZChGsV2USggNiMOruYou6r4lK5IpDB/G/wkjUu0yKGX9rbxenDI
-U5PMCCjjmCXPI6T53iHTfIUJrU6adTrCC2qJeHZERxhlbI1Bjjt/msv0tadQ1wUs
-N+gDS63pYaACbvXy8MWy7Vu33PqUXHeeE6V/Uq2V8viTO96LXFvKWlJbYK8U90vv
-o/ufQJVtMVT8QtPHRh8jrdkPSHCa2XV4cdFyQzR1bldZwgJcJmApzyMZFo6IQ6XU
-5MsI+yMRQ+hDKXJioaldXgjUkK642M4UwtBV8ob2xJNDd2ZhwLnoQdeXeGADbkpy
-rqXRfboQnoZsG4q5WTP468SQvvG5
------END CERTIFICATE-----
-`
 	rsaPrivateKeyFile             = "fixtures/key.pem"
 	certificateFile               = "fixtures/cert.pem"
 	multiCertificateFile          = "fixtures/multi.pem"
@@ -195,31 +168,29 @@ func TestConfigServerTLSClientCASet(t *testing.T) {
 
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
+//
+// NOTE: In reality this behavior depends on the platform trust store and would
+// be best validated via integration tests. Here we inject a fake system pool so
+// the unit test can deterministically verify the intended semantics.
 func TestConfigServerExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		// FIXME: see https://github.com/docker/go-connections/issues/105.
-		t.Skip("FIXME: failing on Windows and darwin")
-	}
 	key, cert := getCertAndKey()
-	ca := getMultiCert()
 
-	caBytes, err := os.ReadFile(ca)
+	customRoot, err := newTestTrustRoot()
 	if err != nil {
-		t.Fatal("Unable to read CA certs", err)
+		t.Fatal("Unable to generate fake custom CA", err)
 	}
 
-	var testCerts []*x509.Certificate
-	for _, pemBytes := range [][]byte{caBytes, []byte(systemRootTrustedCert)} {
-		pemBlock, _ := pem.Decode(pemBytes)
-		if pemBlock == nil {
-			t.Fatal("Malformed certificate")
-		}
-		crt, err := x509.ParseCertificate(pemBlock.Bytes)
-		if err != nil {
-			t.Fatal("Unable to parse certificate")
-		}
-		testCerts = append(testCerts, crt)
+	ca := filepath.Join(t.TempDir(), "custom-ca.pem")
+	if err := os.WriteFile(ca, customRoot.RootPEM, 0o644); err != nil {
+		t.Fatal("Unable to write custom CA file", err)
 	}
+
+	systemLeaf, err := systemRootTrustedX509()
+	if err != nil {
+		t.Fatal("Unable to load fake system certificate", err)
+	}
+
+	testCerts := []*x509.Certificate{customRoot.LeafCert, systemLeaf}
 
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
 	// and custom CA-signed certs
@@ -228,6 +199,8 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		KeyFile:    key,
 		ClientAuth: tls.VerifyClientCertIfGiven,
 		CAFile:     ca,
+
+		systemCertPool: fakeSystemCertPool(),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -248,6 +221,7 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		ClientAuth:         tls.VerifyClientCertIfGiven,
 		CAFile:             ca,
 		ExclusiveRootPools: true,
+		systemCertPool:     fakeSystemCertPool(),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -264,24 +238,19 @@ func TestConfigServerExclusiveRootPools(t *testing.T) {
 		}
 	}
 
-	// No CA file provided, system cert should be verifiable only
+	// No CA file provided means the server does not configure ClientCAs.
 	tlsConfig, err = Server(Options{
 		CertFile: cert,
 		KeyFile:  key,
+
+		systemCertPool: fakeSystemCertPool(),
 	})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure server TLS", err)
 	}
-
-	for i, crt := range testCerts {
-		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.ClientCAs})
-		switch {
-		case i == 1 && err != nil:
-			t.Fatal("Unable to verify system root-signed certificate, even though the root pool should be the system pool only", err)
-		case i == 0 && err == nil:
-			t.Fatal("Successfully verified custom certificate though the root pool should be the system pool only", err)
-		}
+	if tlsConfig.ClientCAs != nil {
+		t.Fatal("Expected ClientCAs to be nil when no CA file is provided")
 	}
 }
 
@@ -538,34 +507,36 @@ func TestConfigClientTLSEncryptedKey(t *testing.T) {
 
 // Exclusive root pools determines whether the CA pool will be a union of the system
 // certificate pool and custom certs, or an exclusive or of the custom certs and system pool
+//
+// NOTE: In reality this behavior depends on the platform trust store and would
+// be best validated via integration tests. Here we inject a fake system pool so
+// the unit test can deterministically verify the intended semantics.
 func TestConfigClientExclusiveRootPools(t *testing.T) {
-	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
-		// FIXME: see https://github.com/docker/go-connections/issues/105.
-		t.Skip("FIXME: failing on Windows and darwin")
-	}
-	ca := getMultiCert()
+	key, cert := getCertAndKey()
 
-	caBytes, err := os.ReadFile(ca)
+	customRoot, err := newTestTrustRoot()
 	if err != nil {
-		t.Fatal("Unable to read CA certs", err)
+		t.Fatal("Unable to generate fake custom CA", err)
 	}
 
-	var testCerts []*x509.Certificate
-	for _, pemBytes := range [][]byte{caBytes, []byte(systemRootTrustedCert)} {
-		pemBlock, _ := pem.Decode(pemBytes)
-		if pemBlock == nil {
-			t.Fatal("Malformed certificate")
-		}
-		crt, err := x509.ParseCertificate(pemBlock.Bytes)
-		if err != nil {
-			t.Fatal("Unable to parse certificate")
-		}
-		testCerts = append(testCerts, crt)
+	ca := filepath.Join(t.TempDir(), "custom-ca.pem")
+	if err := os.WriteFile(ca, customRoot.RootPEM, 0o644); err != nil {
+		t.Fatal("Unable to write custom CA file", err)
 	}
+
+	systemLeaf, err := systemRootTrustedX509()
+	if err != nil {
+		t.Fatal("Unable to load fake system certificate", err)
+	}
+
+	testCerts := []*x509.Certificate{customRoot.LeafCert, systemLeaf}
 
 	// ExclusiveRootPools not set, so should be able to verify both system-signed certs
 	// and custom CA-signed certs
-	tlsConfig, err := Client(Options{CAFile: ca})
+	tlsConfig, err := Client(Options{
+		CAFile:         ca,
+		systemCertPool: fakeSystemCertPool(),
+	})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
@@ -582,6 +553,7 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 	tlsConfig, err = Client(Options{
 		CAFile:             ca,
 		ExclusiveRootPools: true,
+		systemCertPool:     fakeSystemCertPool(),
 	})
 
 	if err != nil || tlsConfig == nil {
@@ -598,21 +570,18 @@ func TestConfigClientExclusiveRootPools(t *testing.T) {
 		}
 	}
 
-	// No CA file provided, system cert should be verifiable only
-	tlsConfig, err = Client(Options{})
+	// No CA file provided means the client leaves RootCAs unset.
+	tlsConfig, err = Client(Options{
+		CertFile:       cert,
+		KeyFile:        key,
+		systemCertPool: fakeSystemCertPool(),
+	})
 
 	if err != nil || tlsConfig == nil {
 		t.Fatal("Unable to configure client TLS", err)
 	}
-
-	for i, crt := range testCerts {
-		_, err := crt.Verify(x509.VerifyOptions{Roots: tlsConfig.RootCAs})
-		switch {
-		case i == 1 && err != nil:
-			t.Fatal("Unable to verify system root-signed certificate, even though the root pool should be the system pool only", err)
-		case i == 0 && err == nil:
-			t.Fatal("Successfully verified custom certificate though the root pool should be the system pool only", err)
-		}
+	if tlsConfig.RootCAs != nil {
+		t.Fatal("Expected RootCAs to be nil when no CA file is provided")
 	}
 }
 

@@ -34,6 +34,9 @@ type Options struct {
 	// the system pool will be used.
 	ExclusiveRootPools bool
 	MinVersion         uint16
+
+	// systemCertPool allows mocking the system cert-pool for testing.
+	systemCertPool func() (*x509.CertPool, error)
 }
 
 // DefaultServerAcceptedCiphers should be uses by code which already has a crypto/tls
@@ -86,7 +89,11 @@ func certPool(opts Options) (*x509.CertPool, error) {
 	if opts.ExclusiveRootPools {
 		pool = x509.NewCertPool()
 	} else {
-		pool, err = x509.SystemCertPool()
+		if opts.systemCertPool != nil {
+			pool, err = opts.systemCertPool()
+		} else {
+			pool, err = x509.SystemCertPool()
+		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
