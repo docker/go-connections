@@ -69,7 +69,6 @@ func SortPortMap(ports []Port, bindings map[Port][]PortBinding) {
 		portInt, portProto := p.Int(), p.Proto()
 		if binding, ok := bindings[p]; ok && len(binding) > 0 {
 			for _, b := range binding {
-				b := b // capture loop variable for go < 1.22
 				s = append(s, portMapEntry{
 					port: p, binding: &b,
 					portInt: portInt, portProto: portProto,

@@ -77,7 +77,7 @@ func TestConfigServerTLSFailsIfUnableToLoadCerts(t *testing.T) {
 	_ = tempFile.Close()
 
 	for _, badFile := range []string{"not-a-file", tempFile.Name()} {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			files := []string{cert, key, ca}
 			files[i] = badFile
 
@@ -475,7 +475,7 @@ func TestConfigClientTLSClientCertOrKeyInvalid(t *testing.T) {
 	defer func() { _ = os.Remove(tempFile.Name()) }()
 	_ = tempFile.Close()
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		for _, invalid := range []string{"not-a-file", "", tempFile.Name()} {
 			files := []string{cert, key}
 			files[i] = invalid
