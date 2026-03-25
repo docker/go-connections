@@ -86,7 +86,7 @@ func certPool(caFile string, exclusivePool bool) (*x509.CertPool, error) {
 	if exclusivePool {
 		pool = x509.NewCertPool()
 	} else {
-		pool, err = SystemCertPool()
+		pool, err = x509.SystemCertPool()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read system certificates: %v", err)
 		}
