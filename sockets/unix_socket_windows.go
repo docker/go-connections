@@ -85,7 +85,7 @@ func withSDDL(sddl string) SockOption {
 	}
 }
 
-// NewUnixSocket creates a new unix socket.
+// NewUnixSocket creates a new Unix socket.
 //
 // It sets [BasePermissions] on the socket path and grants the given additional
 // users and groups to generic read (GR) and write (GW) access. It returns
@@ -128,6 +128,16 @@ func getSecurityDescriptor(additionalUsersAndGroups ...string) (string, error) {
 	return sddl, nil
 }
 
-func listenUnix(path string) (net.Listener, error) {
-	return net.Listen("unix", path)
+func listenUnix(path string, opts ...SockOption) (net.Listener, error) {
+	l, err := net.Listen("unix", path)
+	if err != nil {
+		return nil, err
+	}
+	for _, op := range opts {
+		if err := op(path); err != nil {
+			_ = l.Close()
+			return nil, err
+		}
+	}
+	return l, nil
 }
