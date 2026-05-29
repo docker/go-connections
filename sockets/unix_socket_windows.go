@@ -48,7 +48,7 @@ func WithAdditionalUsersAndGroups(additionalUsersAndGroups []string) SockOption 
 		}
 		sd, err := getSecurityDescriptor(additionalUsersAndGroups...)
 		if err != nil {
-			return fmt.Errorf("looking up SID: %w", err)
+			return err
 		}
 		return withSDDL(sd)(path)
 	}
