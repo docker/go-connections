@@ -33,22 +33,70 @@ func NewUnixSocket(path string, gid int) (net.Listener, error) {
 	return NewUnixSocketWithOpts(path, WithChown(0, gid), WithChmod(0o660))
 }
 
-func listenUnix(path string) (net.Listener, error) {
-	// net.Listen does not allow for permissions to be set. As a result, when
-	// specifying custom permissions ("WithChmod()"), there is a short time
-	// between creating the socket and applying the permissions, during which
-	// the socket permissions are Less restrictive than desired.
+func listenUnix(path string, opts ...SockOption) (_ net.Listener, retErr error) {
+	// net.Listen does not allow permissions or ownership to be set between
+	// bind(2), which creates the socket path, and listen(2), which makes it
+	// possible for clients to connect.
 	//
-	// To work around this limitation of net.Listen(), we temporarily set the
-	// umask to 0777, which forces the socket to be created with 000 permissions
-	// (i.e.: no access for anyone). After that, WithChmod() must be used to set
-	// the desired permissions.
+	// Creating the socket manually lets us apply options after bind(2), but
+	// before listen(2). This avoids temporarily relaxing the process umask while
+	// still preventing a socket from becoming connectable before the requested
+	// permissions are applied.
 	//
-	// We don't use "defer" here, to reset the umask to its original value as soon
-	// as possible. Ideally we'd be able to detect if WithChmod() was passed as
-	// an option, and skip changing umask if default permissions are used.
-	origUmask := syscall.Umask(0o777)
-	l, err := net.Listen("unix", path)
-	syscall.Umask(origUmask)
-	return l, err
+	// See https://github.com/golang/go/issues/11822
+	fd, err := syscall.Socket(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		return nil, err
+	}
+	syscall.CloseOnExec(fd) // No syscall.SOCK_CLOEXEC on macOS.
+	defer func() {
+		if fd >= 0 {
+			_ = syscall.Close(fd)
+		}
+	}()
+
+	if err := syscall.Bind(fd, &syscall.SockaddrUnix{Name: path}); err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if retErr != nil {
+			_ = syscall.Unlink(path)
+		}
+	}()
+
+	// Preserve the previous secure-by-default behavior: the socket is not
+	// accessible at all unless permission options are set.
+	//
+	// TODO(thaJeztah): consider using "0600" as default; using "0000" could potentially mean we can't cleanup on error.
+	if err := os.Chmod(path, 0); err != nil {
+		return nil, err
+	}
+
+	for _, op := range opts {
+		if err := op(path); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := syscall.Listen(fd, syscall.SOMAXCONN); err != nil {
+		return nil, err
+	}
+
+	f := os.NewFile(uintptr(fd), "unix:"+path)
+	fd = -1 // f now owns the original fd; prevent the defer from closing it.
+
+	// FileListener takes ownership of the socket; f is only a temporary wrapper,
+	// and the temporary *os.File is no longer needed after this point.
+	l, err := net.FileListener(f)
+	_ = f.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	if ul, ok := l.(*net.UnixListener); ok {
+		ul.SetUnlinkOnClose(true)
+	}
+
+	return l, nil
 }
