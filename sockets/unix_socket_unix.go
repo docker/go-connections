@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"syscall"
 )
 
@@ -121,7 +122,7 @@ func listenUnix(path string, opts ...SockOption) (_ net.Listener, retErr error) 
 		}
 	}
 
-	if err := syscall.Listen(fd, syscall.SOMAXCONN); err != nil {
+	if err := syscall.Listen(fd, listenerBacklog()); err != nil {
 		return nil, os.NewSyscallError("listen", err)
 	}
 
@@ -143,3 +144,6 @@ func listenUnix(path string, opts ...SockOption) (_ net.Listener, retErr error) 
 
 	return l, nil
 }
+
+// listenerBacklog is a caching wrapper around maxListenerBacklog.
+var listenerBacklog = sync.OnceValue(maxListenerBacklog)
