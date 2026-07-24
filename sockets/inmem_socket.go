@@ -73,9 +73,10 @@ func (s *InmemSocket) Dial(network, addr string) (net.Conn, error) {
 	srvConn, clientConn := net.Pipe()
 	select {
 	case s.chConn <- srvConn:
+		return clientConn, nil
 	case <-s.chClose:
+		_ = srvConn.Close()
+		_ = clientConn.Close()
 		return nil, net.ErrClosed
 	}
-
-	return clientConn, nil
 }
