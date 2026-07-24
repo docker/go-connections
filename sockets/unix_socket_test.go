@@ -58,3 +58,27 @@ func runTest(t *testing.T, path string, l net.Listener, echoStr string) {
 		t.Fatal(fmt.Errorf("msg may lost"))
 	}
 }
+
+// TestNewUnixSocketWithOptsRemovesExistingFile verifies that a pre-existing
+// regular file is removed before creating the socket.
+func TestNewUnixSocketWithOptsRemovesExistingFile(t *testing.T) {
+	socketPath := tempSocketPath(t)
+
+	if err := os.WriteFile(socketPath, []byte("existing"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	l, err := NewUnixSocketWithOpts(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+
+	info, err := os.Lstat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode()&os.ModeSocket == 0 {
+		t.Fatalf("expected %q to be a socket, got mode %v", socketPath, info.Mode())
+	}
+}
