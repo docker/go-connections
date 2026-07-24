@@ -103,23 +103,24 @@ func NewUnixSocket(path string, additionalUsersAndGroups []string) (net.Listener
 
 // getSecurityDescriptor returns the DACL for the Unix socket.
 //
-// By default, it grants [BasePermissions], but allows for additional
-// users and groups to get generic read (GR) and write (GW) access. It
-// returns an error when failing to resolve any of the additional users
-// and groups.
+// By default, it grants [BasePermissions]. Additional users and groups
+// are granted generic read (GR) and write (GW) access. It returns an
+// error if any name cannot be resolved to a SID.
 func getSecurityDescriptor(additionalUsersAndGroups ...string) (string, error) {
 	sddl := BasePermissions
 
 	// Grant generic read (GR) and write (GW) access to whatever
 	// additional users or groups were specified.
 	//
-	// TODO(thaJeztah): should we fail on, or remove duplicates?
+	// We keep duplicates; two identical allow ACEs are redundant,
+	// but they do not create conflicting permissions, so should not error.
+	// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/20233ed8-a6c6-4097-aafa-dd545ed24428
 	for _, g := range additionalUsersAndGroups {
 		sid, err := winio.LookupSidByName(strings.TrimSpace(g))
 		if err != nil {
 			return "", fmt.Errorf("looking up SID: %w", err)
 		}
-		sddl += fmt.Sprintf("(A;;GRGW;;;%s)", sid)
+		sddl += "(A;;GRGW;;;" + sid + ")"
 	}
 	return sddl, nil
 }
