@@ -1,8 +1,6 @@
 package sockets
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"golang.org/x/sys/windows"
@@ -104,8 +102,7 @@ func TestUnixSocketWithOpts(t *testing.T) {
 
 func TestNewUnixSocket(t *testing.T) {
 	group := wellKnownAccountName(t, windows.WinBuiltinUsersSid)
-	socketPath := filepath.Join(os.TempDir(), "test.sock")
-	t.Logf("socketPath: %s, path length: %d", socketPath, len(socketPath))
+	socketPath := tempSocketPath(t)
 
 	l, err := NewUnixSocket(socketPath, []string{group})
 	if err != nil {
@@ -117,7 +114,7 @@ func TestNewUnixSocket(t *testing.T) {
 
 func TestNewUnixSocketUnknownGroup(t *testing.T) {
 	const group = "NoSuchUserOrGroup" // non-existing user or group
-	socketPath := filepath.Join(os.TempDir(), "fail.sock")
+	socketPath := tempSocketPath(t)
 	_, err := NewUnixSocket(socketPath, []string{group})
 	if err == nil {
 		t.Errorf("expected error, got nil")
