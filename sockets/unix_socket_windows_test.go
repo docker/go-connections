@@ -61,27 +61,20 @@ func TestGetSecurityDescriptor(t *testing.T) {
 }
 
 func TestUnixSocketWithOpts(t *testing.T) {
-	socketFile, err := os.CreateTemp("", "test*.sock")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = socketFile.Close()
-	defer func() { _ = os.Remove(socketFile.Name()) }()
-
-	l, err := NewUnixSocketWithOpts(socketFile.Name())
+	socketPath := tempSocketPath(t)
+	l, err := NewUnixSocketWithOpts(socketPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = l.Close() }()
 
 	echoStr := "hello"
-	runTest(t, socketFile.Name(), l, echoStr)
+	runTest(t, socketPath, l, echoStr)
 }
 
 func TestNewUnixSocket(t *testing.T) {
 	group := "Users" // for testing, should always be available
 	socketPath := filepath.Join(os.TempDir(), "test.sock")
-	defer func() { _ = os.Remove(socketPath) }()
 	t.Logf("socketPath: %s, path length: %d", socketPath, len(socketPath))
 
 	l, err := NewUnixSocket(socketPath, []string{group})
@@ -96,7 +89,6 @@ func TestNewUnixSocketUnknownGroup(t *testing.T) {
 	group := "NoSuchUserOrGroup"
 	socketPath := filepath.Join(os.TempDir(), "fail.sock")
 	_, err := NewUnixSocket(socketPath, []string{group})
-	_ = os.Remove(socketPath)
 	if err == nil {
 		t.Errorf("expected error, got nil")
 	}
