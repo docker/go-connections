@@ -62,11 +62,6 @@ type SockOption func(string) error
 
 // NewUnixSocketWithOpts creates a Unix socket with the specified options.
 //
-// This function temporarily changes the system's "umask" to 0777 to work around
-// a race condition between creating the socket and setting its permissions. While
-// this should only be for a short duration, it may affect other processes that
-// create files/directories during that period.
-//
 // On Unix platforms, socket permissions are 0000 by default, i.e. no access
 // for anyone. Pass WithChmod() and WithChown() to set the desired permissions
 // and ownership.
@@ -99,19 +94,7 @@ func NewUnixSocketWithOpts(path string, opts ...SockOption) (net.Listener, error
 		return nil, err
 	}
 
-	l, err := listenUnix(path)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, op := range opts {
-		if err := op(path); err != nil {
-			_ = l.Close()
-			return nil, err
-		}
-	}
-
-	return l, nil
+	return listenUnix(path, opts...)
 }
 
 // isAbstractSocket reports whether path is an abstract Unix socket address.
