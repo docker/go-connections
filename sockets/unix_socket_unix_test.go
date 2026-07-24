@@ -9,20 +9,15 @@ import (
 )
 
 func TestUnixSocketWithOpts(t *testing.T) {
-	socketFile, err := os.CreateTemp("", "test*.sock")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = socketFile.Close()
-	defer func() { _ = os.Remove(socketFile.Name()) }()
+	socketPath := tempSocketPath(t)
 
 	uid, gid := os.Getuid(), os.Getgid()
 	perms := os.FileMode(0660)
-	l, err := NewUnixSocketWithOpts(socketFile.Name(), WithChown(uid, gid), WithChmod(perms))
+	l, err := NewUnixSocketWithOpts(socketPath, WithChown(uid, gid), WithChmod(perms))
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err := os.Stat(socketFile.Name())
+	p, err := os.Stat(socketPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +33,7 @@ func TestUnixSocketWithOpts(t *testing.T) {
 	defer func() { _ = l.Close() }()
 
 	echoStr := "hello"
-	runTest(t, socketFile.Name(), l, echoStr)
+	runTest(t, socketPath, l, echoStr)
 }
 
 // TestNewUnixSocket run under root user.
@@ -47,12 +42,12 @@ func TestNewUnixSocket(t *testing.T) {
 		t.Skip("requires root")
 	}
 	gid := os.Getgid()
-	path := "/tmp/test.sock"
+	socketPath := tempSocketPath(t)
 	echoStr := "hello"
-	l, err := NewUnixSocket(path, gid)
+	l, err := NewUnixSocket(socketPath, gid)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer func() { _ = l.Close() }()
-	runTest(t, path, l, echoStr)
+	runTest(t, socketPath, l, echoStr)
 }
