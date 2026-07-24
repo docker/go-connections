@@ -6,17 +6,14 @@ import (
 	"sync"
 )
 
-// dummyAddr is used to satisfy net.Addr for the in-mem socket
-// it is just stored as a string and returns the string for all calls
-type dummyAddr string
+// inmemAddr is used to satisfy net.Addr for the in-memory socket.
+type inmemAddr string
 
 // Network returns the addr string, satisfies net.Addr
-func (a dummyAddr) Network() string {
-	return string(a)
-}
+func (a inmemAddr) Network() string { return "inmem" }
 
 // String returns the string form
-func (a dummyAddr) String() string {
+func (a inmemAddr) String() string {
 	return string(a)
 }
 
@@ -24,7 +21,7 @@ func (a dummyAddr) String() string {
 type InmemSocket struct {
 	chConn  chan net.Conn
 	chClose chan struct{}
-	addr    dummyAddr
+	addr    inmemAddr
 	mu      sync.Mutex
 }
 
@@ -35,7 +32,7 @@ func NewInmemSocket(addr string, bufSize int) *InmemSocket {
 	return &InmemSocket{
 		chConn:  make(chan net.Conn, bufSize),
 		chClose: make(chan struct{}),
-		addr:    dummyAddr(addr),
+		addr:    inmemAddr(addr),
 	}
 }
 
