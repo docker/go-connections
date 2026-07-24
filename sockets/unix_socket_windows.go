@@ -91,6 +91,9 @@ func withSDDL(sddl string) SockOption {
 // users and groups to generic read (GR) and write (GW) access. It returns
 // an error when failing to resolve any of the additional users and groups,
 // or when failing to apply the ACL.
+//
+// Abstract Unix sockets are not supported by this helper. Attempts to use
+// abstract socket addresses return an error wrapping [errors.ErrUnsupported].
 func NewUnixSocket(path string, additionalUsersAndGroups []string) (net.Listener, error) {
 	var opts []SockOption
 	if len(additionalUsersAndGroups) > 0 {

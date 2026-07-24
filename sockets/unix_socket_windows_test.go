@@ -1,6 +1,9 @@
 package sockets
 
 import (
+	"errors"
+	"os/user"
+	"path/filepath"
 	"testing"
 
 	"golang.org/x/sys/windows"
@@ -110,6 +113,70 @@ func TestNewUnixSocket(t *testing.T) {
 	}
 	defer func() { _ = l.Close() }()
 	runTest(t, socketPath, l, "hello")
+}
+
+// TestNewUnixSocketWithOptsAbstract verifies that abstract Unix sockets behave
+// correctly. Unlike filesystem-backed sockets, they must not create a socket
+// file before or after the listener is closed.
+func TestNewUnixSocketWithOptsAbstract(t *testing.T) {
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Go documents "@" as a Linux-specific shorthand for abstract Unix sockets:
+	//
+	//   "On Linux, a Name beginning with '@' denotes an abstract socket address:
+	//    the '@' is translated to a NUL byte when the address is passed to the
+	//    kernel..."
+	//
+	// See https://pkg.go.dev/net@go1.27rc2#UnixAddr.
+	//
+	// Windows uses the native kernel representation (a leading NUL byte) for
+	// abstract Unix sockets. Both forms are tested here to document Go's
+	// platform-specific behavior.
+	prefixes := []struct{ name, prefix string }{
+		{name: "at_prefix", prefix: "@"},
+		{name: "nul_prefix", prefix: "\x00"},
+	}
+	tests := []struct {
+		name string
+		opts []SockOption
+	}{
+		{
+			name: "no options",
+		},
+		{
+			name: "base permissions",
+			opts: []SockOption{
+				WithBasePermissions(),
+			},
+		},
+		{
+			name: "additional users and groups",
+			opts: []SockOption{
+				WithAdditionalUsersAndGroups([]string{currentUser.Username}),
+			},
+		},
+	}
+
+	for _, prefix := range prefixes {
+		t.Run(prefix.name, func(t *testing.T) {
+			for _, tc := range tests {
+				t.Run(tc.name, func(t *testing.T) {
+					socketPath := prefix.prefix + filepath.Base(tempSocketPath(t))
+					l, err := NewUnixSocketWithOpts(socketPath, tc.opts...)
+					if err == nil {
+						_ = l.Close()
+						t.Fatalf("expected abstract socket %q to be rejected", socketPath)
+					}
+					if !errors.Is(err, errors.ErrUnsupported) {
+						t.Fatalf("expected unsupported error, got %v", err)
+					}
+				})
+			}
+		})
+	}
 }
 
 func TestNewUnixSocketUnknownGroup(t *testing.T) {
