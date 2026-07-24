@@ -36,6 +36,27 @@ func TestUnixSocketWithOpts(t *testing.T) {
 	runTest(t, socketPath, l, echoStr)
 }
 
+// TestUnixSocketWithOptsDefaultPermissions verifies that sockets created
+// without an explicit WithChmod option have permissions set to 0000.
+func TestUnixSocketWithOptsDefaultPermissions(t *testing.T) {
+	socketPath := tempSocketPath(t)
+	l, err := NewUnixSocketWithOpts(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = l.Close() }()
+
+	info, err := os.Stat(socketPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const wantPerms os.FileMode = 0o000
+	if got := info.Mode().Perm(); got != wantPerms {
+		t.Fatalf("unexpected file permissions: expected: %#o, got: %#o", wantPerms, got)
+	}
+}
+
 // TestNewUnixSocket run under root user.
 func TestNewUnixSocket(t *testing.T) {
 	if os.Getuid() != 0 {
