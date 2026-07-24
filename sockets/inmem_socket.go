@@ -1,6 +1,7 @@
 package sockets
 
 import (
+	"context"
 	"net"
 	"sync"
 )
@@ -67,13 +68,38 @@ func (s *InmemSocket) Close() error {
 	return nil
 }
 
-// Dial is used to establish a connection with the in-mem server.
-// It returns a [net.ErrClosed] if the connection is already closed.
+// Dial establishes a connection with the in-memory listener.
+//
+// The network and addr parameters are accepted for compatibility with
+// conventional dialer APIs but are currently ignored.
+//
+// It is equivalent to calling DialContext with context.Background().
+// It returns [net.ErrClosed] if the listener has already been closed.
 func (s *InmemSocket) Dial(network, addr string) (net.Conn, error) {
+	return s.DialContext(context.Background(), network, addr)
+}
+
+// DialContext establishes a connection with the in-memory listener.
+//
+// The network and addr parameters are accepted for compatibility with
+// conventional dialer APIs but are currently ignored.
+//
+// If ctx is canceled before the connection is established, DialContext
+// returns the context error. It returns [net.ErrClosed] if the listener
+// has already been closed.
+func (s *InmemSocket) DialContext(ctx context.Context, network, addr string) (net.Conn, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	srvConn, clientConn := net.Pipe()
 	select {
 	case s.chConn <- srvConn:
 		return clientConn, nil
+	case <-ctx.Done():
+		_ = srvConn.Close()
+		_ = clientConn.Close()
+		return nil, ctx.Err()
 	case <-s.chClose:
 		_ = srvConn.Close()
 		_ = clientConn.Close()
