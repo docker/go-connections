@@ -3,6 +3,7 @@
 package sockets
 
 import (
+	"errors"
 	"os"
 	"syscall"
 	"testing"
@@ -54,6 +55,26 @@ func TestUnixSocketWithOptsDefaultPermissions(t *testing.T) {
 	const wantPerms os.FileMode = 0o000
 	if got := info.Mode().Perm(); got != wantPerms {
 		t.Fatalf("unexpected file permissions: expected: %#o, got: %#o", wantPerms, got)
+	}
+}
+
+// TestUnixSocketWithOptsCleanupOnError verifies that partially initialized
+// sockets are cleaned up when a socket option returns an error.
+func TestUnixSocketWithOptsCleanupOnError(t *testing.T) {
+	socketPath := tempSocketPath(t)
+
+	wantErr := errors.New("boom")
+	_, err := NewUnixSocketWithOpts(socketPath, func(string) error {
+		return wantErr
+	})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected error %v, got %v", wantErr, err)
+	}
+
+	if _, err := os.Lstat(socketPath); err == nil {
+		t.Fatalf("socket %q still exists", socketPath)
+	} else if !os.IsNotExist(err) {
+		t.Fatalf("unexpected error stating %q: %v", socketPath, err)
 	}
 }
 
