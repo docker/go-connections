@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"errors"
 	"io"
 	"net"
 	"syscall"
@@ -51,7 +52,7 @@ func (proxy *TCPProxy) clientLoop(client *net.TCPConn, quit chan bool) {
 		if err != nil {
 			// If the socket we are writing to is shutdown with
 			// SHUT_WR, forward it to the other end of the pipe:
-			if err, ok := err.(*net.OpError); ok && err.Err == syscall.EPIPE {
+			if errors.Is(err, syscall.EPIPE) || errors.Is(err, errConnReset) {
 				_ = from.CloseRead()
 			}
 		}
