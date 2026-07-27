@@ -60,3 +60,10 @@ jobs:
         run: go build ./...
       - name: Test
         run: ${{ matrix.test-cmd }}
+      - name: Cross-build
+        if: matrix.platform == 'ubuntu-24.04' && matrix.go-version == 'stable'
+        run: |
+          for target in $(go tool dist list); do
+            echo "Building for $target"
+            GOOS=${target%/*} GOARCH=${target#*/} CGO_ENABLED=0 go build ./...
+          done
