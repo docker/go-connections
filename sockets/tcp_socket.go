@@ -15,7 +15,10 @@ func NewTCPSocket(addr string, tlsConfig *tls.Config) (net.Listener, error) {
 		return nil, err
 	}
 	if tlsConfig != nil {
-		tlsConfig.NextProtos = []string{"http/1.1"}
+		tlsConfig = tlsConfig.Clone()
+		if len(tlsConfig.NextProtos) == 0 {
+			tlsConfig.NextProtos = []string{"http/1.1"}
+		}
 		l = tls.NewListener(l, tlsConfig)
 	}
 	return l, nil
