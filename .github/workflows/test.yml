@@ -26,9 +26,9 @@ jobs:
           - "" # do not specify go-version to fall back on go-version-file (use go.mod); see https://github.com/actions/setup-go/issues/450#issuecomment-3620402646
           - "oldstable"
           - "stable"
-        platform: [ubuntu-24.04, windows-latest, macos-latest]
+        platform: [ubuntu-26.04, windows-latest, macos-latest]
         include:
-          - platform: ubuntu-24.04
+          - platform: ubuntu-26.04
             test-cmd: go test -exec sudo -v ./...
             ipv6: true
           - platform: windows-latest
@@ -61,7 +61,7 @@ jobs:
       - name: Test
         run: ${{ matrix.test-cmd }}
       - name: Cross-build
-        if: matrix.platform == 'ubuntu-24.04' && matrix.go-version == 'stable'
+        if: matrix.platform == 'ubuntu-26.04' && matrix.go-version == 'stable'
         run: |
           for target in $(go tool dist list); do
             case "$target" in
