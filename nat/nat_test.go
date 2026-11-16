@@ -874,6 +874,68 @@ func TestStringer(t *testing.T) {
 	}
 }
 
+func TestPortBinding(t *testing.T) {
+	tests := []struct {
+		doc     string
+		binding *PortBinding
+		expect  string
+	}{
+		{
+			doc:     "no host mapping",
+			binding: &PortBinding{},
+			expect:  "",
+		},
+		{
+			doc: "ipv4 missing port",
+			binding: &PortBinding{
+				HostIP: "192.168.1.100",
+			},
+			expect: "",
+		},
+		{
+			doc: "ipv4",
+			binding: &PortBinding{
+				HostIP:   "192.168.1.100",
+				HostPort: "6000",
+			},
+			expect: "192.168.1.100:6000",
+		},
+		{
+			doc: "ipv6 missing port",
+			binding: &PortBinding{
+				HostIP: "::1",
+			},
+			expect: "",
+		},
+		{
+			doc: "ipv6",
+			binding: &PortBinding{
+				HostIP:   "::1",
+				HostPort: "6000",
+			},
+			expect: "[::1]:6000",
+		},
+		// FIXME(thaJeztah): this should be invalid
+		{
+			doc: "ipv6 with braces",
+			binding: &PortBinding{
+				HostIP:   "[::1]",
+				HostPort: "6000",
+			},
+			expect: "[[::1]]:6000",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.doc, func(t *testing.T) {
+			actual := tc.binding.String()
+			if actual != tc.expect {
+				t.Errorf("Expected %s got %s", tc.expect, actual)
+			}
+		})
+	}
+}
+
 func BenchmarkParsePortSpecs(b *testing.B) {
 	specs := [][]string{
 		{"1234/tcp", "2345/udp", "3456/sctp"},
